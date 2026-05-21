@@ -5,5 +5,5 @@ import react from '@vitejs/plugin-react'
 // e.g. base: '/recipe-vault/'
 export default defineConfig({
   plugins: [react()],
-  base: 'Recipe-Collection/',
+  base: './',
 })
