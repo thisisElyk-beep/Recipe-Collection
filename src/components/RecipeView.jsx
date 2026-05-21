@@ -1,138 +1,186 @@
 import { useState } from 'react';
+import CookingMode from './CookingMode';
+
+// ── Scaling helpers ─────────────────────────────────────────────
+function parseAmount(str) {
+  if (!str && str !== 0) return null;
+  const s = str.toString().trim();
+  const mixed = s.match(/^(\d+)\s+(\d+)\/(\d+)$/);
+  if (mixed) return parseInt(mixed[1]) + parseInt(mixed[2]) / parseInt(mixed[3]);
+  const frac = s.match(/^(\d+)\/(\d+)$/);
+  if (frac) return parseInt(frac[1]) / parseInt(frac[2]);
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+function formatAmount(n) {
+  if (n === null) return '';
+  const FRACS = [[1/8,'⅛'],[1/4,'¼'],[1/3,'⅓'],[3/8,'⅜'],[1/2,'½'],[5/8,'⅝'],[2/3,'⅔'],[3/4,'¾'],[7/8,'⅞']];
+  const whole = Math.floor(n);
+  const frac = n - whole;
+  if (frac < 0.01) return whole === 0 ? '' : whole.toString();
+  let best = null, bestDiff = Infinity;
+  for (const [v, sym] of FRACS) {
+    const d = Math.abs(frac - v);
+    if (d < bestDiff) { bestDiff = d; best = sym; }
+  }
+  if (bestDiff < 0.06) return whole > 0 ? `${whole} ${best}` : best;
+  return n % 1 === 0 ? n.toString() : n.toFixed(1);
+}
+
+function scaleAmt(amount, scale) {
+  if (scale === 1) return amount;
+  const n = parseAmount(amount);
+  if (n === null) return amount;
+  return formatAmount(n * scale);
+}
+// ────────────────────────────────────────────────────────────────
 
 export default function RecipeView({ recipe, collections, onClose, onUpdate, onDelete }) {
   const [imgError, setImgError] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [cookMode, setCookMode] = useState(false);
 
-  const { id, title, description, image_url, prep_time, cook_time, total_time, servings,
-    ingredients = [], steps = [], tags = [], source_url, favorited, collection: recipeCollection } = recipe;
+  const {
+    id, title, description, image_url, prep_time, cook_time, total_time,
+    servings, ingredients = [], steps = [], tags = [], source_url, favorited,
+    collection: col
+  } = recipe;
 
-  const handleFavorite = () => onUpdate(id, { favorited: !favorited });
-  const handleCollectionChange = (e) => onUpdate(id, { collection: e.target.value });
   const handleDelete = () => {
-    if (confirmDelete) { onDelete(id); }
+    if (confirmDelete) onDelete(id);
     else { setConfirmDelete(true); setTimeout(() => setConfirmDelete(false), 3000); }
   };
 
-  const formatIngredient = (ing) => {
-    const parts = [ing.amount, ing.unit].filter(Boolean).join(' ');
-    return { amount: parts, item: ing.item, note: ing.note };
+  const scaledServings = () => {
+    if (scale === 1 || !servings) return servings;
+    const n = parseFloat(servings);
+    if (!isNaN(n)) return `${n * scale} (${scale}×)`;
+    return `${servings} ×${scale}`;
   };
 
   return (
-    <div className="recipe-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="recipe-view">
-        <div className="rv-topbar">
-          <button className="rv-back" onClick={onClose}>
-            ← Back
+    <>
+      {cookMode && <CookingMode recipe={recipe} scale={scale} onClose={() => setCookMode(false)} />}
+
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+        {/* Top bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 28px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', flexShrink: 0 }}>
+          <button onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer', padding: '6px 10px', borderRadius: 7, border: 'none', background: 'transparent', fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}
+            onMouseOver={e => e.currentTarget.style.background = 'var(--tag-bg)'}
+            onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+            ← All Recipes
           </button>
 
-          <div className="rv-actions">
-            <select className="rv-select" value={recipeCollection || 'All Recipes'} onChange={handleCollectionChange}>
-              {collections.filter(c => c !== 'Favorites').map(c => (
-                <option key={c}>{c}</option>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+            {/* Scale selector */}
+            <div style={{ display: 'flex', gap: 2, background: 'var(--tag-bg)', borderRadius: 8, padding: 3 }}>
+              {[1, 2, 3].map(s => (
+                <button key={s} onClick={() => setScale(s)} style={{ padding: '5px 12px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: scale === s ? 600 : 400, fontFamily: 'var(--font-body)', cursor: 'pointer', transition: 'all 0.15s', background: scale === s ? 'var(--accent)' : 'transparent', color: scale === s ? 'white' : 'var(--text-muted)' }}>
+                  {s}×
+                </button>
               ))}
+            </div>
+
+            <button onClick={() => setCookMode(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: '#1A1210', color: '#E8B898', border: '1px solid #3A2A20', borderRadius: 8, fontSize: 12, fontWeight: 500, fontFamily: 'var(--font-body)', cursor: 'pointer', transition: 'all 0.15s' }}>
+              ▶ Cook Mode
+            </button>
+
+            <select style={{ fontSize: 12, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 7, background: 'var(--surface)', fontFamily: 'var(--font-body)', cursor: 'pointer', outline: 'none', color: 'var(--text-muted)' }}
+              value={col || 'All Recipes'} onChange={e => onUpdate(id, { collection: e.target.value })}>
+              {collections.filter(c => c !== 'Favorites').map(c => <option key={c}>{c}</option>)}
             </select>
 
-            <button
-              className={`rv-icon-btn ${favorited ? 'fav-active' : ''}`}
-              onClick={handleFavorite}
-              title={favorited ? 'Unfavorite' : 'Favorite'}
-            >
+            <button onClick={() => onUpdate(id, { favorited: !favorited })}
+              style={{ width: 34, height: 34, borderRadius: 7, border: '1px solid var(--border)', background: favorited ? 'var(--accent-light)' : 'var(--surface)', cursor: 'pointer', fontSize: 16, color: favorited ? 'var(--accent)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
               {favorited ? '♥' : '♡'}
             </button>
 
-            <button
-              className={`rv-icon-btn danger`}
-              onClick={handleDelete}
-              title={confirmDelete ? 'Click again to confirm' : 'Delete recipe'}
-              style={confirmDelete ? { color: '#C0392B', borderColor: '#FADBD8', background: '#FDEDEC' } : {}}
-            >
+            <button onClick={handleDelete}
+              style={{ width: 34, height: 34, borderRadius: 7, border: `1px solid ${confirmDelete ? '#FADBD8' : 'var(--border)'}`, background: confirmDelete ? '#FDEDEC' : 'var(--surface)', cursor: 'pointer', fontSize: 15, color: confirmDelete ? '#C0392B' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
+              title={confirmDelete ? 'Click again to confirm delete' : 'Delete recipe'}>
               {confirmDelete ? '?' : '🗑'}
             </button>
           </div>
         </div>
 
-        {image_url && !imgError && (
-          <img className="rv-hero-image" src={image_url} alt={title} onError={() => setImgError(true)} />
-        )}
-
-        <div className="rv-content">
-          <h1 className="rv-title">{title}</h1>
-          {description && <p className="rv-description">{description}</p>}
-
-          <div className="rv-meta-row">
-            {prep_time && (
-              <div className="rv-meta-item">
-                <span className="rv-meta-label">Prep</span>
-                <span className="rv-meta-value">{prep_time}</span>
-              </div>
-            )}
-            {cook_time && (
-              <div className="rv-meta-item">
-                <span className="rv-meta-label">Cook</span>
-                <span className="rv-meta-value">{cook_time}</span>
-              </div>
-            )}
-            {total_time && (
-              <div className="rv-meta-item">
-                <span className="rv-meta-label">Total</span>
-                <span className="rv-meta-value">{total_time}</span>
-              </div>
-            )}
-            {servings && (
-              <div className="rv-meta-item">
-                <span className="rv-meta-label">Serves</span>
-                <span className="rv-meta-value">{servings}</span>
-              </div>
-            )}
-          </div>
-
-          {tags.length > 0 && (
-            <div className="rv-tags">
-              {tags.map(tag => <span key={tag} className="tag">{tag}</span>)}
-            </div>
+        {/* Scrollable body */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {image_url && !imgError && (
+            <img src={image_url} alt={title} onError={() => setImgError(true)}
+              style={{ width: '100%', height: 320, objectFit: 'cover', display: 'block' }} />
           )}
 
-          <div className="rv-columns">
-            <div>
-              <div className="rv-section-title">Ingredients</div>
-              <ul className="rv-ingredients">
-                {ingredients.map((ing, i) => {
-                  const { amount, item, note } = formatIngredient(ing);
-                  return (
-                    <li key={i} className="rv-ingredient">
-                      <span className="rv-ing-amount">{amount}</span>
-                      <span className="rv-ing-item">
-                        {item}
-                        {note && <div className="rv-ing-note">{note}</div>}
+          <div style={{ padding: '32px 48px 60px', maxWidth: 1100, margin: '0 auto' }}>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 46, fontWeight: 400, lineHeight: 1.1, marginBottom: 12, letterSpacing: '-0.01em' }}>{title}</h1>
+            {description && <p style={{ fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 22, fontStyle: 'italic' }}>{description}</p>}
+
+            {/* Meta row */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, padding: '16px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
+              {[['Prep', prep_time], ['Cook', cook_time], ['Total', total_time], ['Serves', scaledServings()]].filter(x => x[1]).map(([l, v]) => (
+                <div key={l}>
+                  <div style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>{l}</div>
+                  <div style={{ fontSize: 15, fontWeight: 500, marginTop: 2 }}>{v}</div>
+                </div>
+              ))}
+              {scale > 1 && (
+                <div style={{ marginLeft: 'auto', background: 'var(--accent-light)', border: '1px solid #E8C4A8', borderRadius: 8, padding: '4px 12px', fontSize: 12, color: '#7A3A18', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
+                  {scale}× Recipe
+                </div>
+              )}
+            </div>
+
+            {tags.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 36 }}>
+                {tags.map(t => <span key={t} className="tag">{t}</span>)}
+              </div>
+            )}
+
+            {/* Two-column layout */}
+            <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 56, alignItems: 'start' }}>
+              {/* Ingredients */}
+              <div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, marginBottom: 16 }}>Ingredients</div>
+                <ul style={{ listStyle: 'none' }}>
+                  {ingredients.map((ing, i) => (
+                    <li key={i} style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border)', fontSize: 14, lineHeight: 1.4, ...(i === 0 ? { borderTop: '1px solid var(--border)' } : {}) }}>
+                      <span style={{ fontWeight: 600, minWidth: 72, color: 'var(--accent)', fontSize: 13, flexShrink: 0 }}>
+                        {scaleAmt(ing.amount, scale)}{ing.unit ? ` ${ing.unit}` : ''}
+                      </span>
+                      <span>
+                        {ing.item}
+                        {ing.note && <span style={{ color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic', display: 'block', marginTop: 2 }}>{ing.note}</span>}
                       </span>
                     </li>
-                  );
-                })}
-              </ul>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Steps */}
+              <div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, marginBottom: 16 }}>Instructions</div>
+                <ol style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 24 }}>
+                  {steps.map((step, i) => (
+                    <li key={i} style={{ display: 'flex', gap: 16 }}>
+                      <span style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--accent)', color: 'white', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                        {step.number || i + 1}
+                      </span>
+                      <p style={{ fontSize: 15, lineHeight: 1.7, paddingTop: 4 }}>{step.instruction}</p>
+                    </li>
+                  ))}
+                </ol>
+              </div>
             </div>
 
-            <div>
-              <div className="rv-section-title">Instructions</div>
-              <ol className="rv-steps">
-                {steps.map((step, i) => (
-                  <li key={i} className="rv-step">
-                    <span className="rv-step-num">{step.number || i + 1}</span>
-                    <p className="rv-step-text">{step.instruction}</p>
-                  </li>
-                ))}
-              </ol>
-            </div>
+            {source_url && (
+              <div style={{ marginTop: 48, paddingTop: 20, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--text-muted)' }}>
+                Source: <a href={source_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>{source_url}</a>
+              </div>
+            )}
           </div>
-
-          {source_url && (
-            <div className="rv-source">
-              Source: <a href={source_url} target="_blank" rel="noopener noreferrer">{source_url}</a>
-            </div>
-          )}
         </div>
       </div>
-    </div>
+    </>
   );
 }
