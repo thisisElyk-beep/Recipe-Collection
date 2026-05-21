@@ -87,7 +87,7 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
             style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer', padding: '6px 10px', borderRadius: 7, border: 'none', background: 'transparent', fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}
             onMouseOver={e => e.currentTarget.style.background = 'var(--tag-bg)'}
             onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
-            <- All Recipes
+            ← All Recipes
           </button>
 
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
