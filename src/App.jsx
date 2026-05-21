@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot, query, where, getDocs } from 'firebase/firestore';
 import { getFirebaseDb, resetFirebaseDb } from './lib/firebase';
 import Sidebar from './components/Sidebar';
 import RecipeGrid from './components/RecipeGrid';
@@ -47,6 +47,7 @@ export default function App() {
   }, [isConfigured]);
 
   const collections = ['All Recipes', 'Favorites', ...customCollections.map(c => c.name)];
+  const allTags = [...new Set(recipes.flatMap(r => r.tags || []))].sort();
 
   const addRecipe = async (recipeData) => {
     const db = getFirebaseDb();
@@ -81,7 +82,21 @@ export default function App() {
     }
   };
 
-  const allTags = [...new Set(recipes.flatMap(r => r.tags || []))].sort();
+  const deleteCollection = async (name) => {
+    const db = getFirebaseDb();
+    if (!db) return;
+
+    // Find and delete the collection doc
+    const col = customCollections.find(c => c.name === name);
+    if (col) await deleteDoc(doc(db, 'collections', col.id));
+
+    // Move all recipes in that collection back to All Recipes
+    const affected = recipes.filter(r => r.collection === name);
+    await Promise.all(affected.map(r => updateDoc(doc(db, 'recipes', r.id), { collection: 'All Recipes' })));
+
+    // If currently viewing that collection, go back to All Recipes
+    if (selectedCollection === name) setSelectedCollection('All Recipes');
+  };
 
   const filteredRecipes = recipes.filter(r => {
     if (selectedCollection === 'Favorites' && !r.favorited) return false;
@@ -113,6 +128,7 @@ export default function App() {
         selectedTags={selectedTags}
         onToggleTag={tag => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
         onAddCollection={addCollection}
+        onDeleteCollection={deleteCollection}
         onOpenSettings={() => setShowSettings(true)}
         recipes={recipes}
       />
