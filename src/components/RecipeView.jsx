@@ -83,7 +83,7 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
               ))}
             </div>
 
-            <button onClick={() => setCookMode(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: '#1A1210', color: '#E8B898', border: '1px solid #3A2A20', borderRadius: 8, fontSize: 12, fontWeight: 500, fontFamily: 'var(--font-body)', cursor: 'pointer', transition: 'all 0.15s' }}>
+            <button onClick={() => setCookMode(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: 'var(--accent-light)', color: 'var(--accent)', border: '1px solid #E8C4A8', borderRadius: 8, fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-body)', cursor: 'pointer', transition: 'all 0.15s' }}>
               ▶ Cook Mode
             </button>
 
