@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 const EXAMPLE_CONFIG = `{
   "apiKey": "AIzaSy...",
   "authDomain": "your-project.firebaseapp.com",
@@ -40,18 +42,9 @@ export default function SettingsModal({ onClose, onSave, canClose }) {
           <div className="settings-section-title">Firebase Configuration</div>
           <div className="form-group">
             <div className="form-hint" style={{ marginBottom: 8 }}>
-              Create a Firestore database at <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>console.firebase.google.com</a>,
-              then paste your web app config JSON below.
+              Create a Firestore database at <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>console.firebase.google.com</a>, then paste your web app config JSON below.
             </div>
-            <div className="config-code" style={{ fontSize: 11, marginBottom: 8 }}>{`// Firestore rules (Project Settings → Rules):
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
-    }
-  }
-}`}</div>
+            <div className="config-code" style={{ fontSize: 11, marginBottom: 8 }}>{`// Firestore rules (Project Settings → Rules):\nrules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /{document=**} {\n      allow read, write: if true;\n    }\n  }\n}`}</div>
             <label className="form-label">Firebase Config JSON</label>
             <textarea
               className="form-textarea"
