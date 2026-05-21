@@ -50,7 +50,7 @@ export default function CookingMode({ recipe, scale, onClose }) {
   const scrollIngredients = (direction) => {
     const panel = ingredientsPanelRef.current;
     if (!panel) return;
-    panel.scrollBy({ top: direction === 'down' ? 160 : -160, behavior: 'smooth' });
+    panel.scrollTo({ top: direction === 'down' ? panel.scrollHeight : 0, behavior: 'smooth' });
   };
 
   useEffect(() => {

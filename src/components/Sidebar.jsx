@@ -50,29 +50,28 @@ export default function Sidebar({ collections, selectedCollection, onSelectColle
             onClick={() => onSelectCollection(col)}
             onMouseEnter={() => setHoverCol(col)}
             onMouseLeave={() => setHoverCol(null)}
-            style={{ position: 'relative' }}
           >
             <span style={{ fontSize: 13, opacity: 0.7 }}>{COLLECTION_ICONS[col] || '○'}</span>
             <span style={{ flex: 1 }}>{col}</span>
-            <span className="sidebar-item-count">{colCount(col)}</span>
 
-            {/* Delete button — only on custom collections, on hover */}
-            {!SYSTEM_COLS.has(col) && hoverCol === col && (
+            {/* On hover for custom collections: swap count for delete button */}
+            {!SYSTEM_COLS.has(col) && hoverCol === col ? (
               <button
                 onClick={e => { e.stopPropagation(); onDeleteCollection(col); }}
                 title={`Delete "${col}"`}
                 style={{
-                  position: 'absolute', right: 28, top: '50%', transform: 'translateY(-50%)',
-                  background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: 4,
-                  color: '#8A7F75', cursor: 'pointer', fontSize: 12, width: 18, height: 18,
+                  background: 'rgba(200,80,80,0.18)', border: 'none', borderRadius: 4,
+                  color: '#E88080', cursor: 'pointer', fontSize: 13, width: 20, height: 20,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'all 0.15s', padding: 0, lineHeight: 1,
+                  transition: 'all 0.15s', padding: 0, lineHeight: 1, flexShrink: 0,
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(200,80,80,0.25)'; e.currentTarget.style.color = '#E88080'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#8A7F75'; }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(200,80,80,0.35)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(200,80,80,0.18)'; }}
               >
                 ×
               </button>
+            ) : (
+              <span className="sidebar-item-count">{colCount(col)}</span>
             )}
           </div>
         ))}
