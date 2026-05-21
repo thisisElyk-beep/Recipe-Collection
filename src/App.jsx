@@ -20,9 +20,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const ok = !!localStorage.getItem('firebase_config');
-    setIsConfigured(ok);
-    if (!ok) { setShowSettings(true); setLoading(false); }
+    setIsConfigured(true);
   }, []);
 
   useEffect(() => {
