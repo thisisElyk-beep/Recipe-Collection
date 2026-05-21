@@ -3,12 +3,12 @@ import { getFirestore } from 'firebase/firestore';
 
 // Hardcoded config — no setup needed on any device
 const DEFAULT_CONFIG = {
-  apiKey: "REPLACE_WITH_YOUR_API_KEY",
-  authDomain: "REPLACE_WITH_YOUR_AUTH_DOMAIN",
-  projectId: "REPLACE_WITH_YOUR_PROJECT_ID",
-  storageBucket: "REPLACE_WITH_YOUR_STORAGE_BUCKET",
-  messagingSenderId: "REPLACE_WITH_YOUR_MESSAGING_SENDER_ID",
-  appId: "REPLACE_WITH_YOUR_APP_ID"
+ apiKey: "AIzaSyBF79_eKfQIDbPycAxnoBwEzi2di3OkmoM"
+authDomain: "recipe-collection-6bf47.firebaseapp.com"
+projectId: "recipe-collection-6bf47"
+storageBucket: "recipe-collection-6bf47.firebasestorage.app"
+messagingSenderId: "135923494567"
+appId: "1:135923494567:web:55127ee163999ee4f87582"
 };
 
 let dbInstance = null;
