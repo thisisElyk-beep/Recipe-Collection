@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
-import { getFirebaseDb } from './lib/firebase';
+import { getFirebaseDb, resetFirebaseDb } from './lib/firebase';
 import Sidebar from './components/Sidebar';
 import RecipeGrid from './components/RecipeGrid';
 import RecipeView from './components/RecipeView';
@@ -20,12 +20,11 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const ok = !!localStorage.getItem('firebase_config') && !!localStorage.getItem('claude_api_key');
+    const ok = !!localStorage.getItem('firebase_config');
     setIsConfigured(ok);
     if (!ok) { setShowSettings(true); setLoading(false); }
   }, []);
 
-  // Firebase recipes listener
   useEffect(() => {
     if (!isConfigured) return;
     const db = getFirebaseDb();
@@ -39,7 +38,6 @@ export default function App() {
     return unsub;
   }, [isConfigured]);
 
-  // Firebase collections listener
   useEffect(() => {
     if (!isConfigured) return;
     const db = getFirebaseDb();
@@ -58,7 +56,7 @@ export default function App() {
     if (!db) return;
     await addDoc(collection(db, 'recipes'), {
       ...recipeData,
-      collection: 'All Recipes',
+      collection: recipeData.collection || 'All Recipes',
       favorited: false,
       created_at: new Date().toISOString(),
     });
@@ -86,7 +84,6 @@ export default function App() {
     }
   };
 
-  // Derived state
   const allTags = [...new Set(recipes.flatMap(r => r.tags || []))].sort();
 
   const filteredRecipes = recipes.filter(r => {
@@ -102,15 +99,11 @@ export default function App() {
     return true;
   });
 
-  const toggleTag = (tag) => {
-    setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
-  };
-
   const handleSettingsSave = () => {
+    resetFirebaseDb();
     setIsConfigured(true);
     setShowSettings(false);
     setLoading(true);
-    window.location.reload();
   };
 
   return (
@@ -121,7 +114,7 @@ export default function App() {
         onSelectCollection={col => { setSelectedCollection(col); setSelectedTags([]); }}
         allTags={allTags}
         selectedTags={selectedTags}
-        onToggleTag={toggleTag}
+        onToggleTag={tag => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
         onAddCollection={addCollection}
         onOpenSettings={() => setShowSettings(true)}
         recipes={recipes}
