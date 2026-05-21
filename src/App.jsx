@@ -29,12 +29,10 @@ export default function App() {
     if (!isConfigured) return;
     const db = getFirebaseDb();
     if (!db) { setLoading(false); return; }
-
     const unsub = onSnapshot(collection(db, 'recipes'), snap => {
       setRecipes(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       setLoading(false);
-    }, err => { console.error(err); setLoading(false); });
-
+    }, () => setLoading(false));
     return unsub;
   }, [isConfigured]);
 
@@ -42,7 +40,6 @@ export default function App() {
     if (!isConfigured) return;
     const db = getFirebaseDb();
     if (!db) return;
-
     const unsub = onSnapshot(collection(db, 'collections'), snap => {
       setCustomCollections(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
@@ -111,7 +108,7 @@ export default function App() {
       <Sidebar
         collections={collections}
         selectedCollection={selectedCollection}
-        onSelectCollection={col => { setSelectedCollection(col); setSelectedTags([]); }}
+        onSelectCollection={col => { setSelectedCollection(col); setSelectedTags([]); setViewingRecipe(null); }}
         allTags={allTags}
         selectedTags={selectedTags}
         onToggleTag={tag => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
@@ -121,27 +118,27 @@ export default function App() {
       />
 
       <main className="main">
-        <RecipeGrid
-          recipes={filteredRecipes}
-          loading={loading}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onAddRecipe={() => setShowAddModal(true)}
-          onSelectRecipe={setViewingRecipe}
-          selectedCollection={selectedCollection}
-          isConfigured={isConfigured}
-        />
+        {viewingRecipe ? (
+          <RecipeView
+            recipe={viewingRecipe}
+            collections={collections}
+            onClose={() => setViewingRecipe(null)}
+            onUpdate={updateRecipe}
+            onDelete={deleteRecipe}
+          />
+        ) : (
+          <RecipeGrid
+            recipes={filteredRecipes}
+            loading={loading}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onAddRecipe={() => setShowAddModal(true)}
+            onSelectRecipe={setViewingRecipe}
+            selectedCollection={selectedCollection}
+            isConfigured={isConfigured}
+          />
+        )}
       </main>
-
-      {viewingRecipe && (
-        <RecipeView
-          recipe={viewingRecipe}
-          collections={collections}
-          onClose={() => setViewingRecipe(null)}
-          onUpdate={updateRecipe}
-          onDelete={deleteRecipe}
-        />
-      )}
 
       {showAddModal && (
         <AddRecipeModal
