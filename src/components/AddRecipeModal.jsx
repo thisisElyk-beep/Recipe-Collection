@@ -1,11 +1,8 @@
 import { useState } from 'react';
-import { extractRecipeFromUrl } from '../lib/claude';
-
-const STEPS = { URL: 'url', LOADING: 'loading', PREVIEW: 'preview', ERROR: 'error' };
 
 export default function AddRecipeModal({ collections, onClose, onSave }) {
-  const [step, setStep] = useState(STEPS.URL);
-  const [url, setUrl] = useState('');
+  const [tab, setTab] = useState('import');
+  const [json, setJson] = useState('');
   const [recipe, setRecipe] = useState(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -13,18 +10,17 @@ export default function AddRecipeModal({ collections, onClose, onSave }) {
   const [newTag, setNewTag] = useState('');
   const [selectedCollection, setSelectedCollection] = useState('All Recipes');
 
-  const handleFetch = async () => {
-    if (!url.trim()) return;
-    setStep(STEPS.LOADING);
+  const handleParse = () => {
     setError('');
     try {
-      const data = await extractRecipeFromUrl(url.trim());
-      setRecipe(data);
-      setEditTags(data.tags || []);
-      setStep(STEPS.PREVIEW);
+      const m = json.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error('No JSON object found. Make sure to copy the full block.');
+      const rec = JSON.parse(m[0]);
+      if (!rec.title && !rec.ingredients) throw new Error("This doesn't look like a recipe JSON.");
+      setRecipe(rec);
+      setEditTags(rec.tags || []);
     } catch (e) {
-      setError(e.message);
-      setStep(STEPS.ERROR);
+      setError('Could not parse JSON: ' + e.message);
     }
   };
 
@@ -39,14 +35,12 @@ export default function AddRecipeModal({ collections, onClose, onSave }) {
     }
   };
 
-  const removeTag = (tag) => setEditTags(prev => prev.filter(t => t !== tag));
+  const removeTag = tag => setEditTags(prev => prev.filter(t => t !== tag));
   const addTag = () => {
     const t = newTag.trim().toLowerCase();
     if (t && !editTags.includes(t)) setEditTags(prev => [...prev, t]);
     setNewTag('');
   };
-
-  const [imgError, setImgError] = useState(false);
 
   return (
     <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -57,113 +51,101 @@ export default function AddRecipeModal({ collections, onClose, onSave }) {
         </div>
         <div className="modal-body">
 
-          {/* URL Input */}
-          {(step === STEPS.URL || step === STEPS.ERROR) && (
+          {/* Tabs */}
+          <div style={{ display: 'flex', gap: 2, background: 'var(--tag-bg)', borderRadius: 8, padding: 3, marginBottom: 18 }}>
+            {['import', 'howto'].map(t => (
+              <button key={t} onClick={() => { setTab(t); setRecipe(null); setError(''); }}
+                style={{ flex: 1, padding: '6px', border: 'none', borderRadius: 6, fontSize: 12, fontFamily: 'var(--font-body)', cursor: 'pointer', transition: 'all .15s', background: tab === t ? 'white' : 'transparent', color: tab === t ? 'var(--text)' : 'var(--text-muted)', fontWeight: tab === t ? 500 : 400 }}>
+                {t === 'import' ? 'Paste JSON' : 'How to get JSON'}
+              </button>
+            ))}
+          </div>
+
+          {tab === 'howto' && (
             <>
-              {step === STEPS.ERROR && <div className="error-msg">{error}</div>}
-              <div className="form-group">
-                <label className="form-label">Recipe URL</label>
-                <input
-                  className="form-input"
-                  type="url"
-                  value={url}
-                  onChange={e => setUrl(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleFetch()}
-                  placeholder="https://www.seriouseats.com/..."
-                  autoFocus
-                />
-                <div className="form-hint">Paste any recipe page URL — Claude will extract and clean it automatically.</div>
+              <div style={{ background: 'var(--accent-light)', border: '1px solid #E8C4A8', borderRadius: 8, padding: '14px 16px', fontSize: 13, color: '#7A3A18', lineHeight: 1.7, marginBottom: 16 }}>
+                <strong style={{ display: 'block', marginBottom: 6 }}>Free extraction via Claude chat</strong>
+                1. Open your Claude conversation<br />
+                2. Paste a recipe URL and say:<br />
+                <em style={{ display: 'block', margin: '6px 0', padding: '6px 10px', background: 'rgba(196,98,45,0.1)', borderRadius: 5 }}>"Extract this recipe for my vault"</em>
+                3. Claude returns a JSON block<br />
+                4. Copy it, switch to "Paste JSON" tab, import
               </div>
-              <div className="btn-row">
-                <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
-                <button className="btn btn-primary" onClick={handleFetch} disabled={!url.trim()}>
-                  Extract Recipe →
-                </button>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                Works with any public recipe site. Claude handles all the extraction — no API key needed.
               </div>
             </>
           )}
 
-          {/* Loading */}
-          {step === STEPS.LOADING && (
-            <div className="fetch-state">
-              <div className="spinner" />
-              <div className="fetch-label">Fetching and extracting recipe…</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>This takes 5–15 seconds</div>
-            </div>
+          {tab === 'import' && !recipe && (
+            <>
+              {error && <div className="error-msg">{error}</div>}
+              <div className="form-group">
+                <label className="form-label">JSON from Claude</label>
+                <textarea
+                  className="form-textarea"
+                  style={{ fontFamily: 'monospace', fontSize: 11, minHeight: 140, lineHeight: 1.5 }}
+                  value={json}
+                  onChange={e => setJson(e.target.value)}
+                  placeholder={'{"title":"...","ingredients":[...],"steps":[...],...}'}
+                  autoFocus
+                />
+                <div className="form-hint">
+                  Paste the full JSON block returned by Claude. <button onClick={() => setTab('howto')} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, padding: 0 }}>How does this work?</button>
+                </div>
+              </div>
+              <div className="btn-row">
+                <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                <button className="btn btn-primary" onClick={handleParse} disabled={!json.trim()}>Import Recipe →</button>
+              </div>
+            </>
           )}
 
-          {/* Preview + Edit */}
-          {step === STEPS.PREVIEW && recipe && (
+          {tab === 'import' && recipe && (
             <>
-              {recipe.image_url && !imgError && (
-                <img
-                  className="preview-img"
-                  src={recipe.image_url}
-                  alt={recipe.title}
-                  onError={() => setImgError(true)}
-                />
+              {recipe.image_url && (
+                <img src={recipe.image_url} alt={recipe.title}
+                  style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 8, marginBottom: 14 }}
+                  onError={e => e.target.style.display = 'none'} />
               )}
-
-              <div className="preview-title">{recipe.title}</div>
-
-              <div className="preview-meta">
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, marginBottom: 6 }}>{recipe.title}</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, fontSize: 12, color: 'var(--text-muted)', marginBottom: 14 }}>
                 {recipe.total_time && <span>⏱ {recipe.total_time}</span>}
                 {recipe.servings && <span>🍽 {recipe.servings}</span>}
-                <span>📋 {recipe.ingredients?.length || 0} ingredients</span>
-                <span>📝 {recipe.steps?.length || 0} steps</span>
+                <span>📋 {recipe.ingredients?.length || 0} ingredients · {recipe.steps?.length || 0} steps</span>
               </div>
-
-              {recipe.description && (
-                <p style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: 16, lineHeight: 1.5 }}>
-                  {recipe.description}
-                </p>
-              )}
 
               <div className="form-group">
                 <label className="form-label">Tags</label>
                 <div className="tag-input-row">
                   {editTags.map(tag => (
                     <span key={tag} className="tag-pill">
-                      {tag}
-                      <button onClick={() => removeTag(tag)}>×</button>
+                      {tag}<button onClick={() => removeTag(tag)}>×</button>
                     </span>
                   ))}
-                  <input
-                    className="tag-add-input"
-                    value={newTag}
-                    onChange={e => setNewTag(e.target.value)}
+                  <input className="tag-add-input" value={newTag} onChange={e => setNewTag(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(); } }}
-                    placeholder="+ add tag"
-                  />
+                    placeholder="+ add tag" />
                 </div>
               </div>
 
               <div className="form-group">
                 <label className="form-label">Save to Collection</label>
-                <select
-                  className="form-select"
-                  value={selectedCollection}
-                  onChange={e => setSelectedCollection(e.target.value)}
-                >
-                  {collections.filter(c => c !== 'Favorites').map(c => (
-                    <option key={c}>{c}</option>
-                  ))}
+                <select className="form-select" value={selectedCollection} onChange={e => setSelectedCollection(e.target.value)}>
+                  {collections.filter(c => c !== 'Favorites').map(c => <option key={c}>{c}</option>)}
                 </select>
               </div>
 
               {error && <div className="error-msg">{error}</div>}
 
               <div className="btn-row">
-                <button className="btn btn-secondary" onClick={() => { setStep(STEPS.URL); setError(''); }}>
-                  ← Back
-                </button>
+                <button className="btn btn-secondary" onClick={() => { setRecipe(null); setError(''); }}>← Back</button>
                 <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
                   {saving ? 'Saving…' : 'Save to Vault'}
                 </button>
               </div>
             </>
           )}
-
         </div>
       </div>
     </div>
