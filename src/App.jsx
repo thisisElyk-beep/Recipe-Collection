@@ -115,6 +115,18 @@ export default function App() {
     });
   };
 
+  const renameCollection = async (oldName, newName) => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    // Rename the collection doc
+    const col = customCollections.find(c => c.name === oldName);
+    if (col) await updateDoc(doc(db, 'collections', col.id), { name: newName });
+    // Update all recipes in that collection
+    const affected = recipes.filter(r => r.collection === oldName);
+    await Promise.all(affected.map(r => updateDoc(doc(db, 'recipes', r.id), { collection: newName })));
+    setSelectedCollection(newName);
+  };
+
   const filteredRecipes = recipes.filter(r => {
     if (selectedCollection === 'Favorites' && !r.favorited) return false;
     if (selectedCollection !== 'All Recipes' && selectedCollection !== 'Favorites' && r.collection !== selectedCollection) return false;
@@ -173,6 +185,7 @@ export default function App() {
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}
             onToggleSelectMode={toggleSelectMode}
+            onRenameCollection={renameCollection}
           />
         )}
       </main>
