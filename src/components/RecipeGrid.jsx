@@ -1,3 +1,4 @@
+import { useState, useRef } from 'react';
 import RecipeCard from './RecipeCard';
 
 const IconSearch = () => (
@@ -17,11 +18,40 @@ const Skeleton = () => (
   </div>
 );
 
+const SYSTEM_COLS = new Set(['All Recipes', 'Favorites']);
+
 export default function RecipeGrid({
   recipes, loading, searchQuery, onSearchChange, onAddRecipe,
   onSelectRecipe, selectedCollection, isConfigured,
-  selectMode, selectedIds, onToggleSelect, onToggleSelectMode
+  selectMode, selectedIds, onToggleSelect, onToggleSelectMode,
+  onRenameCollection
 }) {
+  const [editing, setEditing] = useState(false);
+  const [draftName, setDraftName] = useState('');
+  const [hovering, setHovering] = useState(false);
+  const inputRef = useRef(null);
+  const isCustom = !SYSTEM_COLS.has(selectedCollection);
+
+  const startEdit = () => {
+    if (!isCustom) return;
+    setDraftName(selectedCollection);
+    setEditing(true);
+    setTimeout(() => inputRef.current?.select(), 30);
+  };
+
+  const commitEdit = () => {
+    const name = draftName.trim();
+    if (name && name !== selectedCollection) {
+      onRenameCollection(selectedCollection, name);
+    }
+    setEditing(false);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') commitEdit();
+    if (e.key === 'Escape') setEditing(false);
+  };
+
   return (
     <>
       <div style={{
@@ -29,9 +59,39 @@ export default function RecipeGrid({
         position: 'sticky', top: 0, background: 'var(--bg)', zIndex: 5,
         borderBottom: '1px solid var(--border)',
       }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, flexShrink: 0 }}>
-          {selectedCollection}
-        </h2>
+        {editing ? (
+          <input
+            ref={inputRef}
+            value={draftName}
+            onChange={e => setDraftName(e.target.value)}
+            onBlur={commitEdit}
+            onKeyDown={handleKeyDown}
+            style={{
+              fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500,
+              border: 'none', borderBottom: '2px solid var(--accent)',
+              background: 'transparent', outline: 'none', color: 'var(--text)',
+              padding: '0 2px', minWidth: 80, maxWidth: 280,
+            }}
+          />
+        ) : (
+          <h2
+            onMouseEnter={() => setHovering(true)}
+            onMouseLeave={() => setHovering(false)}
+            onClick={startEdit}
+            style={{
+              fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500,
+              flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
+              cursor: isCustom ? 'text' : 'default',
+            }}
+          >
+            {selectedCollection}
+            {isCustom && hovering && (
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--font-body)', fontWeight: 400, opacity: 0.7 }}>
+                ✎
+              </span>
+            )}
+          </h2>
+        )}
         <div style={{ flex: 1, position: 'relative' }}>
           <IconSearch />
           <input
