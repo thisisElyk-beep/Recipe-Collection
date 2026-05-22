@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot, writeBatch } from 'firebase/firestore';
 import { getFirebaseDb, resetFirebaseDb } from './lib/firebase';
 import Sidebar from './components/Sidebar';
 import RecipeGrid from './components/RecipeGrid';
 import RecipeView from './components/RecipeView';
 import AddRecipeModal from './components/AddRecipeModal';
 import SettingsModal from './components/SettingsModal';
+import SelectionBar from './components/SelectionBar';
 
 export default function App() {
   const [recipes, setRecipes] = useState([]);
@@ -16,15 +17,14 @@ export default function App() {
   const [viewingRecipe, setViewingRecipe] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [isConfigured, setIsConfigured] = useState(false);
+  const [isConfigured, setIsConfigured] = useState(true);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    setIsConfigured(true);
-  }, []);
+  // Select mode
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   useEffect(() => {
-    if (!isConfigured) return;
     const db = getFirebaseDb();
     if (!db) { setLoading(false); return; }
     const unsub = onSnapshot(collection(db, 'recipes'), snap => {
@@ -32,17 +32,16 @@ export default function App() {
       setLoading(false);
     }, () => setLoading(false));
     return unsub;
-  }, [isConfigured]);
+  }, []);
 
   useEffect(() => {
-    if (!isConfigured) return;
     const db = getFirebaseDb();
     if (!db) return;
     const unsub = onSnapshot(collection(db, 'collections'), snap => {
       setCustomCollections(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
     return unsub;
-  }, [isConfigured]);
+  }, []);
 
   const collections = ['All Recipes', 'Favorites', ...customCollections.map(c => c.name)];
   const allTags = [...new Set(recipes.flatMap(r => r.tags || []))].sort();
@@ -83,17 +82,37 @@ export default function App() {
   const deleteCollection = async (name) => {
     const db = getFirebaseDb();
     if (!db) return;
-
-    // Find and delete the collection doc
     const col = customCollections.find(c => c.name === name);
     if (col) await deleteDoc(doc(db, 'collections', col.id));
-
-    // Move all recipes in that collection back to All Recipes
     const affected = recipes.filter(r => r.collection === name);
     await Promise.all(affected.map(r => updateDoc(doc(db, 'recipes', r.id), { collection: 'All Recipes' })));
-
-    // If currently viewing that collection, go back to All Recipes
     if (selectedCollection === name) setSelectedCollection('All Recipes');
+  };
+
+  // Bulk move selected recipes to a collection
+  const moveSelectedToCollection = async (targetCollection) => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    const batch = writeBatch(db);
+    selectedIds.forEach(id => {
+      batch.update(doc(db, 'recipes', id), { collection: targetCollection });
+    });
+    await batch.commit();
+    setSelectedIds(new Set());
+    setSelectMode(false);
+  };
+
+  const toggleSelectMode = () => {
+    setSelectMode(v => !v);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   };
 
   const filteredRecipes = recipes.filter(r => {
@@ -121,7 +140,7 @@ export default function App() {
       <Sidebar
         collections={collections}
         selectedCollection={selectedCollection}
-        onSelectCollection={col => { setSelectedCollection(col); setSelectedTags([]); setViewingRecipe(null); }}
+        onSelectCollection={col => { setSelectedCollection(col); setSelectedTags([]); setViewingRecipe(null); setSelectMode(false); setSelectedIds(new Set()); }}
         allTags={allTags}
         selectedTags={selectedTags}
         onToggleTag={tag => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
@@ -131,7 +150,7 @@ export default function App() {
         recipes={recipes}
       />
 
-      <main className="main">
+      <main className="main" style={{ position: 'relative' }}>
         {viewingRecipe ? (
           <RecipeView
             recipe={viewingRecipe}
@@ -150,6 +169,23 @@ export default function App() {
             onSelectRecipe={setViewingRecipe}
             selectedCollection={selectedCollection}
             isConfigured={isConfigured}
+            selectMode={selectMode}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onToggleSelectMode={toggleSelectMode}
+          />
+        )}
+
+        {/* Bulk selection toolbar */}
+        {selectMode && !viewingRecipe && (
+          <SelectionBar
+            count={selectedIds.size}
+            collections={collections}
+            onMove={moveSelectedToCollection}
+            onSelectAll={() => setSelectedIds(new Set(filteredRecipes.map(r => r.id)))}
+            onClear={() => setSelectedIds(new Set())}
+            onCancel={toggleSelectMode}
+            totalVisible={filteredRecipes.length}
           />
         )}
       </main>
