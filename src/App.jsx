@@ -150,7 +150,7 @@ export default function App() {
         recipes={recipes}
       />
 
-      <main className="main" style={{ position: 'relative' }}>
+      <main className="main" style={{ position: 'relative', overflow: 'visible' }}>
         {viewingRecipe ? (
           <RecipeView
             recipe={viewingRecipe}
