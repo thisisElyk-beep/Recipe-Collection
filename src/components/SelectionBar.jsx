@@ -13,7 +13,7 @@ export default function SelectionBar({ count, collections, onMove, onSelectAll, 
 
   return (
     <div style={{
-      position: 'absolute', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+      position: 'fixed', bottom: 24, left: 'calc(256px + (100vw - 256px) / 2)', transform: 'translateX(-50%)',
       background: '#2A2520',
       borderRadius: 14,
       padding: '14px 20px',
