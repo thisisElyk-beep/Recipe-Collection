@@ -150,7 +150,7 @@ export default function App() {
         recipes={recipes}
       />
 
-      <main className="main" style={{ position: 'relative', overflow: 'visible' }}>
+      <main className="main">
         {viewingRecipe ? (
           <RecipeView
             recipe={viewingRecipe}
@@ -175,20 +175,20 @@ export default function App() {
             onToggleSelectMode={toggleSelectMode}
           />
         )}
-
-        {/* Bulk selection toolbar */}
-        {selectMode && !viewingRecipe && (
-          <SelectionBar
-            count={selectedIds.size}
-            collections={collections}
-            onMove={moveSelectedToCollection}
-            onSelectAll={() => setSelectedIds(new Set(filteredRecipes.map(r => r.id)))}
-            onClear={() => setSelectedIds(new Set())}
-            onCancel={toggleSelectMode}
-            totalVisible={filteredRecipes.length}
-          />
-        )}
       </main>
+
+      {/* Bulk selection toolbar — outside main so fixed positioning works */}
+      {selectMode && !viewingRecipe && (
+        <SelectionBar
+          count={selectedIds.size}
+          collections={collections}
+          onMove={moveSelectedToCollection}
+          onSelectAll={() => setSelectedIds(new Set(filteredRecipes.map(r => r.id)))}
+          onClear={() => setSelectedIds(new Set())}
+          onCancel={toggleSelectMode}
+          totalVisible={filteredRecipes.length}
+        />
+      )}
 
       {showAddModal && (
         <AddRecipeModal
