@@ -27,6 +27,30 @@ function fmtTime(s) {
   return `${m}:${String(sec).padStart(2,'0')}`;
 }
 
+// ── Ding sound ──────────────────────────────────────────────────
+function playDing() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    function ding(freq, startTime, duration) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(0.55, startTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+    }
+    const now = ctx.currentTime;
+    ding(880, now, 1.8);
+    ding(880, now + 0.45, 1.8);
+    ding(1100, now + 0.9, 2.2);
+  } catch(e) {}
+}
+
 // ── Ingredient matching (strict phrase-first) ────────────────────
 const MODIFIERS = new Set(['and','the','for','with','from','into','onto','over','until','about','using','all','purpose','free','fresh','dried','large','small','medium','reduced','fat','low','sodium','plus','extra','virgin','packed','coarsely','finely','thinly','divided','softened','melted','frozen','thawed','drained','rinsed','beaten','room','temperature','boneless','skinless','lean','whole','plain','unsalted','salted','sweetened','unsweetened','part','skim','fully','cooked','minced','chopped','sliced','grated','peeled','diced','shredded','crumbled','crushed','roughly','lightly','strained']);
 
@@ -75,6 +99,8 @@ export default function CookingMode({ recipe, scale, onClose }) {
   const ingredientsPanelRef = useRef(null);
   const wakeLockRef = useRef(null);
   const timerRef = useRef(null);
+  const stepTimeRef = useRef(stepTime);
+  const voiceOnRef = useRef(voiceOn);
 
   const steps = recipe.steps || [];
   const ingredients = recipe.ingredients || [];
@@ -83,6 +109,10 @@ export default function CookingMode({ recipe, scale, onClose }) {
   const stepTime = cur ? parseStepTime(cur.instruction) : null;
   const relevant = getRelevantIngredients(ingredients, cur?.instruction);
   const pct = ((step + 1) / total) * 100;
+
+  // Keep refs current
+  useEffect(() => { stepTimeRef.current = stepTime; }, [stepTime]);
+  useEffect(() => { voiceOnRef.current = voiceOn; }, [voiceOn]);
 
   // Wake lock
   useEffect(() => {
@@ -118,6 +148,7 @@ export default function CookingMode({ recipe, scale, onClose }) {
           clearInterval(timerRef.current);
           setTimerRunning(false);
           setTimerDone(true);
+          playDing();
           if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
           return 0;
         }
@@ -151,7 +182,7 @@ export default function CookingMode({ recipe, scale, onClose }) {
         if (cmd === 'scroll-up') scrollIngredients('up');
         if (cmd === 'timer-start') setTimerRunning(true);
         if (cmd === 'timer-pause') setTimerRunning(false);
-        if (cmd === 'timer-reset') { setTimerRunning(false); setTimerDone(false); setTimeRemaining(stepTime); }
+        if (cmd === 'timer-reset') { setTimerRunning(false); setTimerDone(false); setTimeRemaining(stepTimeRef.current); }
         if (cmd === 'exit') onClose();
       }
     };
@@ -159,8 +190,13 @@ export default function CookingMode({ recipe, scale, onClose }) {
     rec.onend = () => { if (rec._shouldRun) { try { rec.start(); } catch {} } };
     rec._shouldRun = false;
     recognitionRef.current = rec;
+    // If voice was already on when effect re-runs, restart listening
+    if (voiceOnRef.current) {
+      rec._shouldRun = true;
+      try { rec.start(); } catch {}
+    }
     return () => { rec._shouldRun = false; try { rec.stop(); } catch {} };
-  }, [total, onClose, stepTime]);
+  }, [total, onClose]);
 
   const toggleVoice = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
