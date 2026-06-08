@@ -27,7 +27,7 @@ function fmtTime(s) {
   return `${m}:${String(sec).padStart(2,'0')}`;
 }
 
-// ── Ding sound ──────────────────────────────────────────────────
+// ── Ding sound ───────────────────────────────────────────────────
 function playDing() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -51,7 +51,7 @@ function playDing() {
   } catch(e) {}
 }
 
-// ── Ingredient matching (strict phrase-first) ────────────────────
+// ── Ingredient matching ──────────────────────────────────────────
 const MODIFIERS = new Set(['and','the','for','with','from','into','onto','over','until','about','using','all','purpose','free','fresh','dried','large','small','medium','reduced','fat','low','sodium','plus','extra','virgin','packed','coarsely','finely','thinly','divided','softened','melted','frozen','thawed','drained','rinsed','beaten','room','temperature','boneless','skinless','lean','whole','plain','unsalted','salted','sweetened','unsweetened','part','skim','fully','cooked','minced','chopped','sliced','grated','peeled','diced','shredded','crumbled','crushed','roughly','lightly','strained']);
 
 function getRelevantIngredients(ingredients, instruction) {
@@ -60,14 +60,14 @@ function getRelevantIngredients(ingredients, instruction) {
   return ingredients.filter(ing => {
     if (!ing.item) return false;
     const item = ing.item.toLowerCase().replace(/[^a-z\s]/g, '').trim();
-    if (text.includes(item)) return true;                          // exact phrase match
+    if (text.includes(item)) return true;
     const words = item.split(/\s+/).filter(w => w.length > 2 && !MODIFIERS.has(w));
     if (!words.length) return false;
-    if (words.length === 1) return text.includes(words[0]);        // single word
-    for (let i = 0; i < words.length - 1; i++) {                  // adjacent word pairs
+    if (words.length === 1) return text.includes(words[0]);
+    for (let i = 0; i < words.length - 1; i++) {
       if (text.includes(`${words[i]} ${words[i+1]}`)) return true;
     }
-    return text.includes(words[words.length - 1]);                 // last significant word only
+    return text.includes(words[words.length - 1]);
   });
 }
 
@@ -95,13 +95,6 @@ export default function CookingMode({ recipe, scale, onClose }) {
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerDone, setTimerDone] = useState(false);
 
-  const recognitionRef = useRef(null);
-  const ingredientsPanelRef = useRef(null);
-  const wakeLockRef = useRef(null);
-  const timerRef = useRef(null);
-  const stepTimeRef = useRef(stepTime);
-  const voiceOnRef = useRef(voiceOn);
-
   const steps = recipe.steps || [];
   const ingredients = recipe.ingredients || [];
   const total = steps.length;
@@ -110,9 +103,17 @@ export default function CookingMode({ recipe, scale, onClose }) {
   const relevant = getRelevantIngredients(ingredients, cur?.instruction);
   const pct = ((step + 1) / total) * 100;
 
-  // Keep refs current
-  useEffect(() => { stepTimeRef.current = stepTime; }, [stepTime]);
-  useEffect(() => { voiceOnRef.current = voiceOn; }, [voiceOn]);
+  // Refs — declared AFTER derived values so no temporal dead zone
+  const recognitionRef = useRef(null);
+  const ingredientsPanelRef = useRef(null);
+  const wakeLockRef = useRef(null);
+  const timerRef = useRef(null);
+  const stepTimeRef = useRef(stepTime);   // safe here, stepTime is already computed above
+  const voiceOnRef = useRef(voiceOn);
+
+  // Keep refs current every render
+  stepTimeRef.current = stepTime;
+  voiceOnRef.current = voiceOn;
 
   // Wake lock
   useEffect(() => {
@@ -163,12 +164,13 @@ export default function CookingMode({ recipe, scale, onClose }) {
     if (p) p.scrollTo({ top: dir === 'down' ? p.scrollHeight : 0, behavior: 'smooth' });
   };
 
-  // Voice recognition
+  // Voice recognition — no stepTime in deps, use ref instead
   useEffect(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return;
     const rec = new SR();
     rec.continuous = true; rec.interimResults = false; rec.lang = 'en-US';
+
     rec.onresult = e => {
       const transcript = e.results[e.results.length - 1][0].transcript;
       const cmd = matchCommand(transcript);
@@ -182,29 +184,51 @@ export default function CookingMode({ recipe, scale, onClose }) {
         if (cmd === 'scroll-up') scrollIngredients('up');
         if (cmd === 'timer-start') setTimerRunning(true);
         if (cmd === 'timer-pause') setTimerRunning(false);
-        if (cmd === 'timer-reset') { setTimerRunning(false); setTimerDone(false); setTimeRemaining(stepTimeRef.current); }
+        if (cmd === 'timer-reset') {
+          setTimerRunning(false);
+          setTimerDone(false);
+          setTimeRemaining(stepTimeRef.current); // use ref, not stale closure
+        }
         if (cmd === 'exit') onClose();
       }
     };
-    rec.onerror = e => { if (e.error === 'no-speech') return; setVoiceStatus('error'); setTimeout(() => { if (rec._shouldRun) setVoiceStatus('listening'); }, 2000); };
-    rec.onend = () => { if (rec._shouldRun) { try { rec.start(); } catch {} } };
+
+    rec.onerror = e => {
+      if (e.error === 'no-speech') return;
+      setVoiceStatus('error');
+      setTimeout(() => { if (rec._shouldRun) setVoiceStatus('listening'); }, 2000);
+    };
+
+    rec.onend = () => {
+      if (rec._shouldRun) { try { rec.start(); } catch {} }
+    };
+
     rec._shouldRun = false;
     recognitionRef.current = rec;
-    // If voice was already on when effect re-runs, restart listening
+
+    // If voice was already on (e.g. effect re-ran), restart immediately
     if (voiceOnRef.current) {
       rec._shouldRun = true;
       try { rec.start(); } catch {}
     }
+
     return () => { rec._shouldRun = false; try { rec.stop(); } catch {} };
-  }, [total, onClose]);
+  }, [total, onClose]); // no stepTime dep — fixed!
 
   const toggleVoice = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { alert('Voice control requires Chrome or Safari.'); return; }
     const rec = recognitionRef.current;
     if (!rec) return;
-    if (!voiceOn) { rec._shouldRun = true; try { rec.start(); } catch {} setVoiceOn(true); setVoiceStatus('listening'); }
-    else { rec._shouldRun = false; try { rec.stop(); } catch {} setVoiceOn(false); setVoiceStatus(''); setLastHeard(''); }
+    if (!voiceOn) {
+      rec._shouldRun = true;
+      try { rec.start(); } catch {}
+      setVoiceOn(true); setVoiceStatus('listening');
+    } else {
+      rec._shouldRun = false;
+      try { rec.stop(); } catch {}
+      setVoiceOn(false); setVoiceStatus(''); setLastHeard('');
+    }
   };
 
   const voiceBg = voiceStatus === 'heard' ? '#E8F5EC' : voiceStatus === 'error' ? '#FDEDEC' : voiceOn ? '#F0E0D4' : '#F6F2EB';
@@ -308,7 +332,6 @@ export default function CookingMode({ recipe, scale, onClose }) {
           {stepTime !== null && (
             <div style={{ marginBottom: 40, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
               <div style={{
-                fontFamily: "'Outfit', system-ui, sans-serif",
                 fontSize: 48, fontWeight: 700, letterSpacing: '-0.03em',
                 color: timerDone ? '#2A5C3A' : timerRunning ? '#C4622D' : '#2A2520',
                 transition: 'color 0.3s',
@@ -349,9 +372,7 @@ export default function CookingMode({ recipe, scale, onClose }) {
         </div>
       </div>
 
-      <style>{`
-        @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 0.8; } 100% { transform: scale(2); opacity: 0; } }
-      `}</style>
+      <style>{`@keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 0.8; } 100% { transform: scale(2); opacity: 0; } }`}</style>
     </div>
   );
 }
