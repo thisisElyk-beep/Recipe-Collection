@@ -1,33 +1,32 @@
-// Multiple CORS proxies tried in order until one works
+// Each proxy has its own fetch + parse strategy
 const PROXIES = [
-  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  {
+    makeUrl: url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    getHtml: async res => res.text(),
+  },
+  {
+    makeUrl: url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    getHtml: async res => { const d = await res.json(); return d?.contents; },
+  },
+  {
+    makeUrl: url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+    getHtml: async res => res.text(),
+  },
 ];
 
 async function fetchViaProxy(url) {
   let lastError;
-  for (const makeUrl of PROXIES) {
+  for (const { makeUrl, getHtml } of PROXIES) {
     try {
-      const res = await fetch(makeUrl(url), { signal: AbortSignal.timeout(8000) });
+      const res = await fetch(makeUrl(url), { signal: AbortSignal.timeout(10000) });
       if (!res.ok) continue;
-      const data = await res.json().catch(() => null);
-      // allorigins wraps in { contents: '...' }, others return raw
-      const html = typeof data === 'string' ? data : data?.contents ?? data?.data ?? null;
+      const html = await getHtml(res);
       if (html && html.length > 500) return html;
     } catch (e) {
       lastError = e;
-      continue;
     }
   }
-  // Last resort: try direct fetch (works if site has open CORS)
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (res.ok) return await res.text();
-  } catch (e) {
-    lastError = e;
-  }
-  throw new Error(`Could not fetch the page through any proxy. The site may block scrapers, or try again in a moment. (${lastError?.message})`);
+  throw new Error(`Could not fetch the page. The site may block scrapers, or try again shortly. (${lastError?.message})`);
 }
 
 // ── ISO 8601 duration parser ──────────────────────────────────────
