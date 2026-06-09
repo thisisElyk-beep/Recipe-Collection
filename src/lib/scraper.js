@@ -1,4 +1,34 @@
-const CORS_PROXY = 'https://api.allorigins.win/get?url=';
+// Multiple CORS proxies tried in order until one works
+const PROXIES = [
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+];
+
+async function fetchViaProxy(url) {
+  let lastError;
+  for (const makeUrl of PROXIES) {
+    try {
+      const res = await fetch(makeUrl(url), { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) continue;
+      const data = await res.json().catch(() => null);
+      // allorigins wraps in { contents: '...' }, others return raw
+      const html = typeof data === 'string' ? data : data?.contents ?? data?.data ?? null;
+      if (html && html.length > 500) return html;
+    } catch (e) {
+      lastError = e;
+      continue;
+    }
+  }
+  // Last resort: try direct fetch (works if site has open CORS)
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (res.ok) return await res.text();
+  } catch (e) {
+    lastError = e;
+  }
+  throw new Error(`Could not fetch the page through any proxy. The site may block scrapers, or try again in a moment. (${lastError?.message})`);
+}
 
 // ── ISO 8601 duration parser ──────────────────────────────────────
 function parseDuration(dur) {
@@ -36,12 +66,10 @@ function parseInstructions(raw) {
   const arr = Array.isArray(raw) ? raw : [raw];
   const steps = [];
   let num = 1;
-
   function addStep(text) {
     const clean = text?.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
     if (clean && clean.length > 3) steps.push({ number: num++, instruction: clean });
   }
-
   for (const item of arr) {
     if (typeof item === 'string') { addStep(item); continue; }
     if (item['@type'] === 'HowToSection' && item.itemListElement) {
@@ -68,21 +96,8 @@ function findRecipe(data) {
 
 // ── Main scraper ──────────────────────────────────────────────────
 export async function scrapeRecipeFromUrl(url) {
-  let html;
-  try {
-    const res = await fetch(`${CORS_PROXY}${encodeURIComponent(url)}`);
-    if (!res.ok) throw new Error(`Proxy error ${res.status}`);
-    const data = await res.json();
-    html = data.contents;
-  } catch (e) {
-    throw new Error(`Could not fetch that page. The site may block scrapers. (${e.message})`);
-  }
+  const html = await fetchViaProxy(url);
 
-  if (!html || html.length < 200) {
-    throw new Error('Page returned empty content.');
-  }
-
-  // Extract all JSON-LD script blocks
   const scriptRegex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
   let match;
   while ((match = scriptRegex.exec(html)) !== null) {
@@ -91,13 +106,9 @@ export async function scrapeRecipeFromUrl(url) {
       const recipe = findRecipe(parsed);
       if (!recipe) continue;
 
-      // Build ingredient list
       const ingredients = (recipe.recipeIngredient || []).map(parseIngredient);
-
-      // Build steps
       const steps = parseInstructions(recipe.recipeInstructions);
 
-      // Tags from keywords, category, cuisine
       const tagSources = [
         ...(recipe.keywords ? recipe.keywords.split(/[,;]/) : []),
         ...(Array.isArray(recipe.recipeCategory) ? recipe.recipeCategory : [recipe.recipeCategory || '']),
@@ -105,7 +116,6 @@ export async function scrapeRecipeFromUrl(url) {
       ];
       const tags = [...new Set(tagSources.map(t => t.trim().toLowerCase()).filter(t => t && t.length < 30))].slice(0, 8);
 
-      // Image
       let image_url = null;
       if (recipe.image) {
         if (typeof recipe.image === 'string') image_url = recipe.image;
@@ -128,10 +138,8 @@ export async function scrapeRecipeFromUrl(url) {
         tags,
         image_url,
       };
-    } catch {
-      continue;
-    }
+    } catch { continue; }
   }
 
-  throw new Error('No recipe data found on this page. The site may not support automatic extraction — try the "Paste JSON" tab instead.');
+  throw new Error('No recipe data found on this page. Try the Paste JSON tab instead.');
 }
