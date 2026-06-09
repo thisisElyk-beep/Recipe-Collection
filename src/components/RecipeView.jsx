@@ -53,6 +53,9 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
   const [cookMode, setCookMode] = useState(false);
   const [editingImage, setEditingImage] = useState(false);
   const [newImageUrl, setNewImageUrl] = useState('');
+  const [editingIngIdx, setEditingIngIdx] = useState(null);
+  const [editDraft, setEditDraft] = useState(null);
+  const [hoverIngIdx, setHoverIngIdx] = useState(null);
 
   const {
     id, title, description, image_url, prep_time, cook_time, total_time,
@@ -70,6 +73,20 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
     const n = parseFloat(servings);
     if (!isNaN(n)) return `${n * scale} (${scale}x)`;
     return `${servings} x${scale}`;
+  };
+
+  const startEditIng = (i, ing) => {
+    setEditingIngIdx(i);
+    setEditDraft({ amount: ing.amount || '', unit: ing.unit || '', item: ing.item || '', note: ing.note || '' });
+  };
+
+  const saveIngredient = async () => {
+    const updated = ingredients.map((ing, i) =>
+      i === editingIngIdx ? { ...ing, ...editDraft, unit: editDraft.unit || null, note: editDraft.note || null } : ing
+    );
+    await onUpdate(id, { ingredients: updated });
+    setEditingIngIdx(null);
+    setEditDraft(null);
   };
 
   const handleImageSave = () => {
@@ -220,14 +237,57 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, marginBottom: 16 }}>Ingredients</div>
                 <ul style={{ listStyle: 'none' }}>
                   {ingredients.map((ing, i) => (
-                    <li key={i} style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border)', fontSize: 14, lineHeight: 1.4, ...(i === 0 ? { borderTop: '1px solid var(--border)' } : {}) }}>
-                      <span style={{ fontWeight: 600, minWidth: 72, color: 'var(--accent)', fontSize: 13, flexShrink: 0 }}>
-                        {scaleAmt(ing.amount, scale)}{ing.unit ? ` ${ing.unit}` : ''}
-                      </span>
-                      <span>
-                        {ing.item}
-                        {ing.note && <span style={{ color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic', display: 'block', marginTop: 2 }}>{ing.note}</span>}
-                      </span>
+                    <li key={i}
+                      onMouseEnter={() => setHoverIngIdx(i)}
+                      onMouseLeave={() => setHoverIngIdx(null)}
+                      style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border)', fontSize: 14, lineHeight: 1.4, alignItems: 'flex-start', position: 'relative', ...(i === 0 ? { borderTop: '1px solid var(--border)' } : {}) }}>
+
+                      {editingIngIdx === i ? (
+                        /* Edit mode */
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <input value={editDraft.amount} onChange={e => setEditDraft(d => ({...d, amount: e.target.value}))}
+                              placeholder="1 1/2" autoFocus
+                              style={{ width: 70, padding: '4px 8px', border: '1px solid var(--accent)', borderRadius: 5, fontSize: 12, fontFamily: 'var(--font-body)', outline: 'none' }} />
+                            <input value={editDraft.unit} onChange={e => setEditDraft(d => ({...d, unit: e.target.value}))}
+                              placeholder="cups"
+                              style={{ width: 70, padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 5, fontSize: 12, fontFamily: 'var(--font-body)', outline: 'none' }} />
+                            <input value={editDraft.item} onChange={e => setEditDraft(d => ({...d, item: e.target.value}))}
+                              placeholder="ingredient"
+                              style={{ flex: 1, padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 5, fontSize: 12, fontFamily: 'var(--font-body)', outline: 'none' }} />
+                          </div>
+                          <input value={editDraft.note} onChange={e => setEditDraft(d => ({...d, note: e.target.value}))}
+                            placeholder="note (optional)"
+                            style={{ width: '100%', padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 5, fontSize: 11, fontFamily: 'var(--font-body)', outline: 'none', color: 'var(--text-muted)' }} />
+                          <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
+                            <button onClick={saveIngredient}
+                              style={{ padding: '4px 12px', background: 'var(--accent)', color: 'white', border: 'none', borderRadius: 5, fontSize: 11, fontWeight: 600, fontFamily: 'var(--font-body)', cursor: 'pointer' }}>
+                              Save
+                            </button>
+                            <button onClick={() => { setEditingIngIdx(null); setEditDraft(null); }}
+                              style={{ padding: '4px 10px', background: 'var(--tag-bg)', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: 5, fontSize: 11, fontFamily: 'var(--font-body)', cursor: 'pointer' }}>
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Display mode */
+                        <>
+                          <span style={{ fontWeight: 600, minWidth: 72, color: 'var(--accent)', fontSize: 13, flexShrink: 0 }}>
+                            {scaleAmt(ing.amount, scale)}{ing.unit ? ` ${ing.unit}` : ''}
+                          </span>
+                          <span style={{ flex: 1 }}>
+                            {ing.item}
+                            {ing.note && <span style={{ color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic', display: 'block', marginTop: 2 }}>{ing.note}</span>}
+                          </span>
+                          {hoverIngIdx === i && editingIngIdx === null && (
+                            <button onClick={() => startEditIng(i, ing)}
+                              style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', background: 'var(--tag-bg)', border: '1px solid var(--border)', borderRadius: 5, color: 'var(--text-muted)', fontSize: 11, padding: '2px 8px', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                              ✎ Edit
+                            </button>
+                          )}
+                        </>
+                      )}
                     </li>
                   ))}
                 </ul>
