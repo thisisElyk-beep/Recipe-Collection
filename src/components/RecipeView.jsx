@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import CookingMode from './CookingMode';
 
+const UNICODE_FRACS = { '½':'1/2','¼':'1/4','¾':'3/4','⅓':'1/3','⅔':'2/3','⅛':'1/8','⅜':'3/8','⅝':'5/8','⅞':'7/8' };
+function normalizeFracs(s) { return s.replace(/[½¼¾⅓⅔⅛⅜⅝⅞]/g, m => UNICODE_FRACS[m]); }
+
 function parseAmount(str) {
   if (!str && str !== 0) return null;
-  const s = str.toString().trim();
+  const s = normalizeFracs(str.toString().trim());
   const mixed = s.match(/^(\d+)\s+(\d+)\/(\d+)$/);
   if (mixed) return parseInt(mixed[1]) + parseInt(mixed[2]) / parseInt(mixed[3]);
   const frac = s.match(/^(\d+)\/(\d+)$/);
@@ -87,7 +90,7 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
             style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer', padding: '6px 10px', borderRadius: 7, border: 'none', background: 'transparent', fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}
             onMouseOver={e => e.currentTarget.style.background = 'var(--tag-bg)'}
             onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
-            ← All Recipes
+            Back
           </button>
 
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>

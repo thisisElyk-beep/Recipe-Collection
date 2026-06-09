@@ -4,7 +4,7 @@ const COLLECTION_ICONS = { 'All Recipes': '◈', 'Favorites': '♡' };
 const SYSTEM_COLS = new Set(['All Recipes', 'Favorites']);
 const DEFAULT_TAG_LIMIT = 8;
 
-export default function Sidebar({ collections, selectedCollection, onSelectCollection, allTags, selectedTags, onToggleTag, onAddCollection, onDeleteCollection, onOpenSettings, recipes }) {
+export default function Sidebar({ collections, selectedCollection, onSelectCollection, allTags, selectedTags, onToggleTag, onAddCollection, onDeleteCollection, onOpenSettings, onExport, recipes }) {
   const [addingCollection, setAddingCollection] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
   const [hoverCol, setHoverCol] = useState(null);
@@ -158,6 +158,12 @@ export default function Sidebar({ collections, selectedCollection, onSelectColle
       )}
 
       <div className="sidebar-bottom">
+        <button className="sidebar-btn" onClick={onExport} title="Download all recipes as JSON">
+          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Export
+        </button>
         <button className="sidebar-btn" onClick={onOpenSettings}>
           <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="3"/>
