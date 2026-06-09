@@ -32,6 +32,15 @@ function formatAmount(n) {
 
 function scaleAmt(amount, scale) {
   if (scale === 1) return amount;
+  if (!amount) return amount;
+  // Handle ranges like "2-3" or "2 to 3"
+  const rangeMatch = amount.toString().match(/^(.+?)\s*(-|to)\s*(.+)$/i);
+  if (rangeMatch) {
+    const n1 = parseAmount(rangeMatch[1]);
+    const n2 = parseAmount(rangeMatch[3]);
+    const sep = /to/i.test(rangeMatch[2]) ? ' to ' : '-';
+    if (n1 !== null && n2 !== null) return `${formatAmount(n1 * scale)}${sep}${formatAmount(n2 * scale)}`;
+  }
   const n = parseAmount(amount);
   if (n === null) return amount;
   return formatAmount(n * scale);
