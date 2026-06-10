@@ -1,9 +1,7 @@
 import { useState } from 'react';
+import { CAT_ICON, CAT_ORDER, matchesStaple } from '../lib/grocery';
 
-const CAT_ICON = { 'Produce':'🥬','Meat & Seafood':'🥩','Dairy & Eggs':'🧀','Bakery & Bread':'🍞','Frozen':'🧊','Pantry & Dry Goods':'🥫','Other':'📦' };
-const CAT_ORDER = ['Produce','Meat & Seafood','Dairy & Eggs','Bakery & Bread','Frozen','Pantry & Dry Goods','Other'];
-
-export default function GroceriesTab({ savedList, onUpdate }) {
+export default function GroceriesTab({ savedList, onUpdate, staples }) {
   const [copied, setCopied] = useState(false);
 
   // savedList = { items: [{amount, unit, item, category, recipes}], checked: [keys], savedAt }
@@ -77,6 +75,7 @@ export default function GroceriesTab({ savedList, onUpdate }) {
                 <input type="checkbox" checked={isChecked} onChange={() => toggle(it)} style={{ marginTop: 2, accentColor: 'var(--accent)', width: 15, height: 15, flexShrink: 0 }} />
                 <span style={{ fontSize: 13, lineHeight: 1.45, textDecoration: isChecked ? 'line-through' : 'none' }}>
                   <strong style={{ color: 'var(--accent)' }}>{[it.amount, it.unit].filter(Boolean).join(' ')}</strong> {it.item}
+                  {matchesStaple(it.item, staples) && <span style={{ fontSize: 9, fontWeight: 600, color: '#7A3A18', background: 'var(--accent-light)', borderRadius: 20, padding: '1px 7px', marginLeft: 6, verticalAlign: 'middle' }}>staple</span>}
                 </span>
               </label>
             );

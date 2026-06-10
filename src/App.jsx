@@ -9,6 +9,7 @@ import SettingsModal from './components/SettingsModal';
 import SelectionBar from './components/SelectionBar';
 import ShoppingListModal from './components/ShoppingListModal';
 import MealPlanner from './components/MealPlanner';
+import { mergeIngredientsIntoList } from './lib/grocery';
 
 export default function App() {
   const [recipes, setRecipes] = useState([]);
@@ -26,9 +27,11 @@ export default function App() {
   const [selectMode, setSelectMode] = useState(false);
   const [showShoppingList, setShowShoppingList] = useState(false);
   const [showPlanner, setShowPlanner] = useState(false);
+  const [plannerTab, setPlannerTab] = useState('planner');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mealPlan, setMealPlan] = useState({});
   const [groceries, setGroceries] = useState(null);
+  const [staples, setStaples] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set());
 
   useEffect(() => {
@@ -79,6 +82,28 @@ export default function App() {
     const db = getFirebaseDb();
     if (!db) return;
     await setDoc(doc(db,'groceries','current'), { list: newList });
+  };
+
+  // Pantry staples — single doc at staples/current
+  useEffect(() => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    return onSnapshot(doc(db,'staples','current'), snap => {
+      setStaples(snap.exists() ? (snap.data().items || []) : []);
+    });
+  }, []);
+
+  const updateStaples = async (items) => {
+    setStaples(items); // optimistic
+    const db = getFirebaseDb();
+    if (!db) return;
+    await setDoc(doc(db,'staples','current'), { items });
+  };
+
+  // Add one recipe's ingredients into the saved grocery list (merging amounts)
+  const addRecipeToGroceries = async (recipe) => {
+    const merged = mergeIngredientsIntoList(groceries?.items || [], recipe);
+    await updateGroceries({ items: merged, checked: groceries?.checked || [], savedAt: groceries?.savedAt || new Date().toISOString() });
   };
 
   const collections = ['All Recipes','Favorites',...customCollections.map(c=>c.name)];
@@ -167,13 +192,14 @@ export default function App() {
         onDeleteCollection={deleteCollection}
         onOpenSettings={()=>setShowSettings(true)}
         onExport={exportRecipes}
-        onOpenPlanner={()=>{setShowPlanner(true);setSidebarOpen(false);}}
+        onOpenPlanner={()=>{setPlannerTab('planner');setShowPlanner(true);setSidebarOpen(false);}}
+        onOpenGroceries={()=>{setPlannerTab('groceries');setShowPlanner(true);setSidebarOpen(false);}}
         recipes={recipes}
       />
 
       <main className="main">
         {viewingRecipe ? (
-          <RecipeView recipe={viewingRecipe} collections={collections} onClose={()=>setViewingRecipe(null)} onUpdate={updateRecipe} onDelete={deleteRecipe} />
+          <RecipeView recipe={viewingRecipe} collections={collections} onClose={()=>setViewingRecipe(null)} onUpdate={updateRecipe} onDelete={deleteRecipe} onAddToGroceries={addRecipeToGroceries} />
         ) : (
           <RecipeGrid
             recipes={filteredRecipes} loading={loading} searchQuery={searchQuery}
@@ -196,6 +222,8 @@ export default function App() {
 
       {showPlanner&&(
         <MealPlanner
+          key={plannerTab}
+          initialTab={plannerTab}
           recipes={recipes}
           plan={mealPlan}
           onUpdatePlan={updateMealPlan}
@@ -203,14 +231,17 @@ export default function App() {
           onOpenRecipe={r=>{setShowPlanner(false);setViewingRecipe(r);}}
           groceries={groceries}
           onUpdateGroceries={updateGroceries}
+          staples={staples}
+          onUpdateStaples={updateStaples}
         />
       )}
 
       {showShoppingList&&(
         <ShoppingListModal
           recipes={recipes.filter(r=>selectedIds.has(r.id))}
+          staples={staples}
           onClose={()=>setShowShoppingList(false)}
-          onSaveToGroceries={(items)=>{updateGroceries({items,checked:[],savedAt:new Date().toISOString()});}}
+          onSaveToGroceries={(items,checkedKeys)=>{updateGroceries({items,checked:checkedKeys||[],savedAt:new Date().toISOString()});}}
         />
       )}
 

@@ -42,7 +42,7 @@ function scaleAmt(amount, scale) {
   return formatAmount(n * scale);
 }
 
-export default function RecipeView({ recipe, collections, onClose, onUpdate, onDelete }) {
+export default function RecipeView({ recipe, collections, onClose, onUpdate, onDelete, onAddToGroceries }) {
   const [imgError, setImgError] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [scale, setScale] = useState(1);
@@ -54,6 +54,7 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
   const [editMode, setEditMode] = useState(false);
   const [draft, setDraft] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [addedToGroceries, setAddedToGroceries] = useState(false);
 
   const {
     id, title, description, image_url, prep_time, cook_time, total_time,
@@ -174,6 +175,11 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
                   ))}
                 </div>
                 <button onClick={() => setCookMode(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: 'var(--accent-light)', color: 'var(--accent)', border: '1px solid #E8C4A8', borderRadius: 8, fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-body)', cursor: 'pointer' }}>Cook Mode</button>
+                <button onClick={async () => { await onAddToGroceries(recipe); setAddedToGroceries(true); setTimeout(() => setAddedToGroceries(false), 2000); }}
+                  title="Add this recipe's ingredients to your grocery list"
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', background: addedToGroceries ? '#E8F5EC' : 'var(--surface)', color: addedToGroceries ? '#2A5C3A' : 'var(--text-muted)', border: `1px solid ${addedToGroceries ? '#A8D4B4' : 'var(--border)'}`, borderRadius: 8, fontSize: 12, fontWeight: 500, fontFamily: 'var(--font-body)', cursor: 'pointer', transition: 'all 0.2s' }}>
+                  {addedToGroceries ? '✓ Added' : '🛒 + Groceries'}
+                </button>
                 <button onClick={enterEditMode} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', background: 'var(--surface)', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 500, fontFamily: 'var(--font-body)', cursor: 'pointer' }}>✎ Edit</button>
                 <select style={{ fontSize: 12, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 7, background: 'var(--surface)', fontFamily: 'var(--font-body)', cursor: 'pointer', outline: 'none', color: 'var(--text-muted)' }} value={col || 'All Recipes'} onChange={e => onUpdate(id, { collection: e.target.value })}>
                   {collections.filter(c => c !== 'Favorites').map(c => <option key={c}>{c}</option>)}

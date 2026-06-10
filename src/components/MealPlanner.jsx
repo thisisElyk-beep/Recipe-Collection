@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import ShoppingListModal from './ShoppingListModal';
 import GroceriesTab from './GroceriesTab';
+import PantryTab from './PantryTab';
 
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 const DAY_ABBR = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
@@ -28,8 +29,8 @@ const TYPE_ORDER = ['Breakfast','Lunch','Dinner','Sides','Dessert','Other'];
 const TYPE_ICON = Object.fromEntries(MEAL_TYPES.map(m => [m.name, m.icon]));
 TYPE_ICON['Other'] = '🍴';
 
-export default function MealPlanner({ recipes, plan, onUpdatePlan, onClose, onOpenRecipe, groceries, onUpdateGroceries }) {
-  const [tab, setTab] = useState('planner');
+export default function MealPlanner({ recipes, plan, onUpdatePlan, onClose, onOpenRecipe, groceries, onUpdateGroceries, staples, onUpdateStaples, initialTab = 'planner' }) {
+  const [tab, setTab] = useState(initialTab);
   const [pickerDay, setPickerDay] = useState(null);
   const [pickerSearch, setPickerSearch] = useState('');
   const [railSearch, setRailSearch] = useState('');
@@ -74,8 +75,8 @@ export default function MealPlanner({ recipes, plan, onUpdatePlan, onClose, onOp
   const filteredPickerRecipes = recipes.filter(r => !pickerSearch || r.title.toLowerCase().includes(pickerSearch.toLowerCase()));
   const totalMeals = Object.values(plan).reduce((sum, list) => sum + (list?.length||0), 0);
 
-  const saveToGroceries = (items) => {
-    onUpdateGroceries({ items, checked: [], savedAt: new Date().toISOString() });
+  const saveToGroceries = (items, checkedKeys) => {
+    onUpdateGroceries({ items, checked: checkedKeys || [], savedAt: new Date().toISOString() });
   };
 
   return (
@@ -85,7 +86,7 @@ export default function MealPlanner({ recipes, plan, onUpdatePlan, onClose, onOp
         <button onClick={onClose} style={{ fontSize:13, color:'var(--text-muted)', cursor:'pointer', padding:'6px 10px', borderRadius:7, border:'none', background:'transparent', fontFamily:'var(--font-body)' }}>Back</button>
         <h2 style={{ fontFamily:'var(--font-display)', fontSize:20, fontWeight:500 }}>Meal Planner</h2>
         <div style={{ display:'flex', gap:2, background:'var(--tag-bg)', borderRadius:8, padding:3 }}>
-          {[['planner','Planner'],['groceries','Groceries']].map(([t,label]) => (
+          {[['planner','Planner'],['groceries','Groceries'],['pantry','Pantry']].map(([t,label]) => (
             <button key={t} onClick={() => setTab(t)} style={{ padding:'5px 14px', border:'none', borderRadius:6, fontSize:12, fontFamily:'var(--font-body)', cursor:'pointer', background: tab===t?'white':'transparent', color: tab===t?'var(--text)':'var(--text-muted)', fontWeight: tab===t?600:400 }}>{label}</button>
           ))}
         </div>
@@ -102,7 +103,11 @@ export default function MealPlanner({ recipes, plan, onUpdatePlan, onClose, onOp
 
       {tab === 'groceries' ? (
         <div style={{ flex:1, overflowY:'auto' }}>
-          <GroceriesTab savedList={groceries} onUpdate={onUpdateGroceries} />
+          <GroceriesTab savedList={groceries} onUpdate={onUpdateGroceries} staples={staples} />
+        </div>
+      ) : tab === 'pantry' ? (
+        <div style={{ flex:1, overflowY:'auto' }}>
+          <PantryTab staples={staples} onUpdate={onUpdateStaples} />
         </div>
       ) : (
       <div className="planner-body" style={{ flex:1, display:'flex', overflow:'hidden' }}>
@@ -199,7 +204,7 @@ export default function MealPlanner({ recipes, plan, onUpdatePlan, onClose, onOp
         </div>
       )}
 
-      {showShopping && <ShoppingListModal recipes={plannedRecipes} onClose={() => setShowShopping(false)} onSaveToGroceries={(items) => { saveToGroceries(items); setTab('groceries'); setShowShopping(false); }} />}
+      {showShopping && <ShoppingListModal recipes={plannedRecipes} staples={staples} onClose={() => setShowShopping(false)} onSaveToGroceries={(items, checkedKeys) => { saveToGroceries(items, checkedKeys); setTab('groceries'); setShowShopping(false); }} />}
     </div>
   );
 }

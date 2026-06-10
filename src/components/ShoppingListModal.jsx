@@ -1,70 +1,5 @@
 import { useState, useMemo } from 'react';
-
-// ── Amount parsing for merging ────────────────────────────────────
-function parseAmount(str) {
-  if (!str && str !== 0) return null;
-  const s = str.toString().trim();
-  const range = s.match(/^(.+?)\s*(?:-|to)\s*(.+)$/i);
-  if (range) return parseAmount(range[2]);
-  const mixed = s.match(/^(\d+)\s+(\d+)\/(\d+)$/);
-  if (mixed) return parseInt(mixed[1]) + parseInt(mixed[2]) / parseInt(mixed[3]);
-  const frac = s.match(/^(\d+)\/(\d+)$/);
-  if (frac) return parseInt(frac[1]) / parseInt(frac[2]);
-  const n = parseFloat(s);
-  return isNaN(n) ? null : n;
-}
-
-function formatAmount(n) {
-  if (n === null) return '';
-  const FRACS = [[1/8,'1/8'],[1/4,'1/4'],[1/3,'1/3'],[3/8,'3/8'],[1/2,'1/2'],[5/8,'5/8'],[2/3,'2/3'],[3/4,'3/4'],[7/8,'7/8']];
-  const whole = Math.floor(n);
-  const frac = n - whole;
-  if (frac < 0.01) return whole === 0 ? '' : whole.toString();
-  let best = null, bestDiff = Infinity;
-  for (const [v, sym] of FRACS) { const d = Math.abs(frac - v); if (d < bestDiff) { bestDiff = d; best = sym; } }
-  if (bestDiff < 0.06) return whole > 0 ? `${whole} ${best}` : best;
-  return n % 1 === 0 ? n.toString() : n.toFixed(2).replace(/0+$/,'').replace(/\.$/,'');
-}
-
-function normUnit(u) {
-  if (!u) return '';
-  const x = u.toLowerCase().replace(/\.$/,'').trim();
-  const MAP = { cups:'cup', tablespoons:'tbsp', tablespoon:'tbsp', tbs:'tbsp', teaspoons:'tsp', teaspoon:'tsp', pounds:'lb', pound:'lb', lbs:'lb', ounces:'oz', ounce:'oz', grams:'g', gram:'g', cloves:'clove', cans:'can', packages:'pkg', pkgs:'pkg' };
-  return MAP[x] || x;
-}
-
-function normItem(item) {
-  return (item||'').toLowerCase().replace(/[^a-z\s]/g,'').replace(/\s+/g,' ').trim();
-}
-
-// ── Category classification ───────────────────────────────────────
-const CATEGORIES = [
-  { name: 'Produce', icon: '🥬', keywords: ['lettuce','spinach','kale','arugula','romaine','tomato','onion','garlic','carrot','celery','potato','sweet potato','pepper','broccoli','cauliflower','zucchini','squash','cucumber','mushroom','avocado','lemon','lime','orange','apple','banana','berry','berries','strawberr','blueberr','grape','herb','parsley','cilantro','basil','dill','mint','rosemary','thyme','sage','scallion','green onion','shallot','ginger','cabbage','brussels','asparagus','corn','pea','bean sprout','radish','beet','cranberr','raisin','date','fruit','vegetable','apricot','peach','pear','mango','pineapple','melon','jalapeno','chile','chili pepper','leek','fennel','eggplant','okra','turnip','parsnip','lemongrass','lime juice','lemon juice'] },
-  { name: 'Meat & Seafood', icon: '🥩', keywords: ['chicken','beef','pork','turkey','lamb','sausage','bacon','ham','steak','ground','salmon','shrimp','fish','tuna','cod','tilapia','crab','lobster','scallop','prosciutto','pancetta','chorizo','meatball','ribs','brisket','tenderloin','thigh','breast','wing','fillet','filet'] },
-  { name: 'Dairy & Eggs', icon: '🧀', keywords: ['milk','cream','butter','cheese','cheddar','mozzarella','parmesan','feta','ricotta','yogurt','egg','sour cream','half and half','buttermilk','cream cheese','muenster','monterey','gouda','brie','mascarpone','cottage cheese','whipping cream','heavy cream','ghee'] },
-  { name: 'Pantry & Dry Goods', icon: '🥫', keywords: ['flour','sugar','salt','pepper','oil','olive oil','vinegar','rice','pasta','noodle','orzo','quinoa','oat','lentil','bean','chickpea','broth','stock','sauce','soy sauce','tomato paste','tomato sauce','diced tomato','canned','can ','baking soda','baking powder','yeast','vanilla','cocoa','chocolate','honey','syrup','maple','cornstarch','breadcrumb','panko','cracker','cereal','nut','almond','walnut','pecan','cashew','peanut','seed','sesame','spice','cumin','paprika','cinnamon','oregano','chili powder','curry','turmeric','bay leaf','coriander','nutmeg','cayenne','garlic powder','onion powder','ketchup','mustard','mayo','mayonnaise','worcestershire','salsa','jam','jelly','peanut butter','tahini','coconut','raisin','chocolate chip','powdered sugar','brown sugar','condensed milk','evaporated milk','gelatin','pudding','cornmeal','semolina','wine','sherry','extract','sriracha','chile crisp','fish sauce','hoisin','molasses','shortening','lard','crisco'] },
-  { name: 'Bakery & Bread', icon: '🍞', keywords: ['bread','tortilla','bun','roll','bagel','pita','naan','baguette','croissant','crust','pie crust','dough','english muffin'] },
-  { name: 'Frozen', icon: '🧊', keywords: ['frozen','ice cream','frozen peas','frozen corn','frozen spinach','frozen berries'] },
-];
-
-function categorize(item) {
-  const text = normItem(item);
-  // Score each category by longest keyword match
-  let best = 'Other', bestLen = 0;
-  for (const cat of CATEGORIES) {
-    for (const kw of cat.keywords) {
-      if (text.includes(kw) && kw.length > bestLen) {
-        best = cat.name;
-        bestLen = kw.length;
-      }
-    }
-  }
-  return best;
-}
-
-const CAT_ORDER = ['Produce','Meat & Seafood','Dairy & Eggs','Bakery & Bread','Frozen','Pantry & Dry Goods','Other'];
-const CAT_ICON = Object.fromEntries(CATEGORIES.map(c => [c.name, c.icon]));
-CAT_ICON['Other'] = '📦';
+import { parseAmount, formatAmount, normUnit, normItem, categorize, CAT_ORDER, CAT_ICON, matchesStaple } from '../lib/grocery';
 
 // ── Merge ingredients across recipes ──────────────────────────────
 function buildShoppingList(recipes) {
@@ -88,15 +23,16 @@ function buildShoppingList(recipes) {
   return [...map.values()];
 }
 
-export default function ShoppingListModal({ recipes, onClose, onSaveToGroceries }) {
+export default function ShoppingListModal({ recipes, onClose, onSaveToGroceries, staples }) {
   const items = useMemo(() => buildShoppingList(recipes), [recipes]);
   // Persist checked state across reopens, keyed by item identity
   const storageKey = 'shoppingChecked';
   const [checked, setChecked] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      return new Set(saved);
-    } catch { return new Set(); }
+    let saved = [];
+    try { saved = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch {}
+    // Auto-check staples
+    const stapleKeys = items.filter(it => matchesStaple(it.item, staples)).map(it => `${it.item}|${it.unit||''}`);
+    return new Set([...saved, ...stapleKeys]);
   });
   const [copied, setCopied] = useState(false);
   const [copiedPlain, setCopiedPlain] = useState(false);
@@ -180,6 +116,7 @@ export default function ShoppingListModal({ recipes, onClose, onSaveToGroceries 
                   <span style={{ fontSize: 13, lineHeight: 1.45, textDecoration: isChecked ? 'line-through' : 'none' }}>
                     <strong style={{ color: 'var(--accent)' }}>{[it.amount, it.unit].filter(Boolean).join(' ')}</strong>
                     {' '}{it.item}
+                    {matchesStaple(it.item, staples) && <span style={{ fontSize: 9, fontWeight: 600, color: '#7A3A18', background: 'var(--accent-light)', borderRadius: 20, padding: '1px 7px', marginLeft: 6, verticalAlign: 'middle' }}>staple</span>}
                     {it.recipes.size > 1 && <span style={{ fontSize: 10, color: 'var(--text-muted)', display: 'block', marginTop: 1 }}>used in {it.recipes.size} recipes</span>}
                   </span>
                 </label>
@@ -190,7 +127,7 @@ export default function ShoppingListModal({ recipes, onClose, onSaveToGroceries 
           <div className="btn-row" style={{ flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={clearChecked}>Uncheck All</button>
             {onSaveToGroceries && (
-              <button className="btn btn-secondary" onClick={() => { onSaveToGroceries(items); setSavedToGroceries(true); setTimeout(() => setSavedToGroceries(false), 2000); }}>
+              <button className="btn btn-secondary" onClick={() => { onSaveToGroceries(items.map(it => ({ ...it, recipes: [...it.recipes] })), [...checked]); setSavedToGroceries(true); setTimeout(() => setSavedToGroceries(false), 2000); }}>
                 {savedToGroceries ? '✓ Saved!' : 'Save to Groceries'}
               </button>
             )}
