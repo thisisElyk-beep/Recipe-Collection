@@ -2,12 +2,15 @@ import { useState } from 'react';
 
 export default function RecipeCard({ recipe, onClick, selectMode, selected, onToggleSelect, onFavorite }) {
   const [imgError, setImgError] = useState(false);
+  const [hovering, setHovering] = useState(false);
   const { title, image_url, total_time, cook_time, servings, tags = [], favorited } = recipe;
   const displayTime = total_time || cook_time;
 
   return (
     <div
       onClick={onClick}
+      onMouseEnter={e => { setHovering(true); if (!selected) e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = selected ? '0 0 0 3px var(--accent-light)' : '0 4px 14px rgba(42,37,32,.10)'; }}
+      onMouseLeave={e => { setHovering(false); e.currentTarget.style.transform = selected ? 'scale(0.98)' : ''; e.currentTarget.style.boxShadow = selected ? '0 0 0 3px var(--accent-light)' : ''; }}
       style={{
         background: '#fff', borderRadius: 9, overflow: 'hidden', cursor: 'pointer',
         border: selected ? '2px solid var(--accent)' : '1px solid var(--border)',
@@ -16,8 +19,6 @@ export default function RecipeCard({ recipe, onClick, selectMode, selected, onTo
         transform: selected ? 'scale(0.98)' : undefined,
         boxShadow: selected ? '0 0 0 3px var(--accent-light)' : undefined,
       }}
-      onMouseEnter={e => { if (!selected) e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = selected ? '0 0 0 3px var(--accent-light)' : '0 4px 14px rgba(42,37,32,.10)'; }}
-      onMouseLeave={e => { e.currentTarget.style.transform = selected ? 'scale(0.98)' : ''; e.currentTarget.style.boxShadow = selected ? '0 0 0 3px var(--accent-light)' : ''; }}
     >
       {/* Checkbox in select mode */}
       {selectMode && (
@@ -27,11 +28,11 @@ export default function RecipeCard({ recipe, onClick, selectMode, selected, onTo
         </div>
       )}
 
-      {/* Favorite button */}
-      {!selectMode && (
+      {/* Favorite — visible on hover, or always if favorited */}
+      {!selectMode && (favorited || hovering) && (
         <button
           onClick={e => { e.stopPropagation(); onFavorite(); }}
-          style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, width: 28, height: 28, borderRadius: '50%', background: favorited ? 'rgba(196,98,45,0.85)' : 'rgba(255,255,255,0.75)', border: 'none', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)', boxShadow: '0 1px 4px rgba(0,0,0,0.15)', transition: 'all 0.15s' }}
+          style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, width: 28, height: 28, borderRadius: '50%', background: favorited ? 'rgba(196,98,45,0.85)' : 'rgba(255,255,255,0.8)', border: 'none', cursor: 'pointer', fontSize: 14, color: favorited ? 'white' : '#8A7F75', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)', boxShadow: '0 1px 4px rgba(0,0,0,0.15)', transition: 'all 0.15s' }}
           title={favorited ? 'Unfavorite' : 'Favorite'}
         >
           {favorited ? '♥' : '♡'}

@@ -7,6 +7,7 @@ import RecipeView from './components/RecipeView';
 import AddRecipeModal from './components/AddRecipeModal';
 import SettingsModal from './components/SettingsModal';
 import SelectionBar from './components/SelectionBar';
+import ShoppingListModal from './components/ShoppingListModal';
 
 export default function App() {
   const [recipes, setRecipes] = useState([]);
@@ -21,6 +22,7 @@ export default function App() {
   const [isConfigured] = useState(true);
   const [loading, setLoading] = useState(true);
   const [selectMode, setSelectMode] = useState(false);
+  const [showShoppingList, setShowShoppingList] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
 
   useEffect(() => {
@@ -145,7 +147,15 @@ export default function App() {
       {selectMode&&!viewingRecipe&&(
         <SelectionBar count={selectedIds.size} collections={collections} onMove={moveSelectedToCollection}
           onSelectAll={()=>setSelectedIds(new Set(filteredRecipes.map(r=>r.id)))}
-          onClear={()=>setSelectedIds(new Set())} onCancel={toggleSelectMode} totalVisible={filteredRecipes.length} />
+          onClear={()=>setSelectedIds(new Set())} onCancel={toggleSelectMode} totalVisible={filteredRecipes.length}
+          onShoppingList={()=>setShowShoppingList(true)} />
+      )}
+
+      {showShoppingList&&(
+        <ShoppingListModal
+          recipes={recipes.filter(r=>selectedIds.has(r.id))}
+          onClose={()=>setShowShoppingList(false)}
+        />
       )}
 
       {showAddModal&&<AddRecipeModal collections={collections} onClose={()=>setShowAddModal(false)} onSave={addRecipe}/>}

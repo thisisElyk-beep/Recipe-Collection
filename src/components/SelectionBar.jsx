@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function SelectionBar({ count, collections, onMove, onSelectAll, onClear, onCancel, totalVisible }) {
+export default function SelectionBar({ count, collections, onMove, onSelectAll, onClear, onCancel, totalVisible, onShoppingList }) {
   const [targetCollection, setTargetCollection] = useState('All Recipes');
   const [moving, setMoving] = useState(false);
 
@@ -72,6 +72,22 @@ export default function SelectionBar({ count, collections, onMove, onSelectAll, 
           {moving ? 'Moving…' : 'Move'}
         </button>
       </div>
+
+      <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.12)', flexShrink: 0 }} />
+
+      {/* Shopping list */}
+      <button
+        onClick={onShoppingList}
+        disabled={count === 0}
+        style={{
+          padding: '6px 14px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.2)',
+          background: 'rgba(255,255,255,0.08)',
+          color: count === 0 ? 'rgba(255,255,255,0.3)' : '#F0EBE3',
+          fontSize: 12, fontWeight: 500, fontFamily: 'var(--font-body)',
+          cursor: count === 0 ? 'not-allowed' : 'pointer', transition: 'all 0.15s', flexShrink: 0,
+        }}>
+        🛒 Shopping List
+      </button>
 
       <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.12)', flexShrink: 0 }} />
 
