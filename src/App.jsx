@@ -25,6 +25,7 @@ export default function App() {
   const [selectMode, setSelectMode] = useState(false);
   const [showShoppingList, setShowShoppingList] = useState(false);
   const [showPlanner, setShowPlanner] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mealPlan, setMealPlan] = useState({});
   const [selectedIds, setSelectedIds] = useState(new Set());
 
@@ -132,11 +133,15 @@ export default function App() {
   });
 
   return (
-    <div className="app">
+    <div className={`app${sidebarOpen ? ' sidebar-open' : ''}`}>
+      <button className="mobile-menu-btn" onClick={() => setSidebarOpen(v => !v)} aria-label="Menu">
+        {sidebarOpen ? '✕' : '☰'}
+      </button>
+      <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />
       <Sidebar
         collections={collections}
         selectedCollection={selectedCollection}
-        onSelectCollection={col=>{setSelectedCollection(col);setSelectedTags([]);setViewingRecipe(null);setSelectMode(false);setSelectedIds(new Set());}}
+        onSelectCollection={col=>{setSelectedCollection(col);setSelectedTags([]);setViewingRecipe(null);setSelectMode(false);setSelectedIds(new Set());setSidebarOpen(false);}}
         allTags={allTags}
         selectedTags={selectedTags}
         onToggleTag={tag=>setSelectedTags(prev=>prev.includes(tag)?prev.filter(t=>t!==tag):[...prev,tag])}
@@ -144,7 +149,7 @@ export default function App() {
         onDeleteCollection={deleteCollection}
         onOpenSettings={()=>setShowSettings(true)}
         onExport={exportRecipes}
-        onOpenPlanner={()=>setShowPlanner(true)}
+        onOpenPlanner={()=>{setShowPlanner(true);setSidebarOpen(false);}}
         recipes={recipes}
       />
 

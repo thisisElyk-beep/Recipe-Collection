@@ -12,7 +12,7 @@ export default function SelectionBar({ count, collections, onMove, onSelectAll, 
   };
 
   return (
-    <div style={{
+    <div className="selection-bar-mobile" style={{
       position: 'fixed', bottom: 24, left: 'calc(256px + (100vw - 256px) / 2)', transform: 'translateX(-50%)',
       background: '#2A2520',
       borderRadius: 14,

@@ -90,8 +90,19 @@ function buildShoppingList(recipes) {
 
 export default function ShoppingListModal({ recipes, onClose }) {
   const items = useMemo(() => buildShoppingList(recipes), [recipes]);
-  const [checked, setChecked] = useState(new Set());
+  // Persist checked state across reopens, keyed by item identity
+  const storageKey = 'shoppingChecked';
+  const [checked, setChecked] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      return new Set(saved);
+    } catch { return new Set(); }
+  });
   const [copied, setCopied] = useState(false);
+
+  const persistChecked = (next) => {
+    try { localStorage.setItem(storageKey, JSON.stringify([...next])); } catch {}
+  };
 
   // Group by category
   const grouped = useMemo(() => {
@@ -103,12 +114,21 @@ export default function ShoppingListModal({ recipes, onClose }) {
     return CAT_ORDER.filter(c => g[c]).map(c => [c, g[c]]);
   }, [items]);
 
-  const toggle = (i) => setChecked(prev => { const n = new Set(prev); n.has(i) ? n.delete(i) : n.add(i); return n; });
+  // Key by item name so check state is stable across reopens
+  const itemKey = (it) => `${it.item}|${it.unit||''}`;
+  const toggle = (it) => setChecked(prev => {
+    const k = itemKey(it);
+    const n = new Set(prev);
+    n.has(k) ? n.delete(k) : n.add(k);
+    persistChecked(n);
+    return n;
+  });
+  const clearChecked = () => { const n = new Set(); setChecked(n); persistChecked(n); };
 
   const copyList = () => {
     const lines = [];
     for (const [cat, list] of grouped) {
-      const unchecked = list.filter(it => !checked.has(it._idx));
+      const unchecked = list.filter(it => !checked.has(itemKey(it)));
       if (!unchecked.length) continue;
       lines.push(`${cat.toUpperCase()}`);
       unchecked.forEach(it => lines.push(`- ${[it.amount, it.unit, it.item].filter(Boolean).join(' ')}`));
@@ -139,21 +159,22 @@ export default function ShoppingListModal({ recipes, onClose }) {
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text)' }}>{cat}</span>
                 <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>({list.length})</span>
               </div>
-              {list.map(it => (
-                <label key={it._idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '7px 4px', cursor: 'pointer', opacity: checked.has(it._idx) ? 0.4 : 1, transition: 'opacity 0.15s' }}>
-                  <input type="checkbox" checked={checked.has(it._idx)} onChange={() => toggle(it._idx)}
+              {list.map(it => { const k = itemKey(it); const isChecked = checked.has(k); return (
+                <label key={it._idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '7px 4px', cursor: 'pointer', opacity: isChecked ? 0.4 : 1, transition: 'opacity 0.15s' }}>
+                  <input type="checkbox" checked={isChecked} onChange={() => toggle(it)}
                     style={{ marginTop: 2, accentColor: 'var(--accent)', width: 15, height: 15, flexShrink: 0 }} />
-                  <span style={{ fontSize: 13, lineHeight: 1.45, textDecoration: checked.has(it._idx) ? 'line-through' : 'none' }}>
+                  <span style={{ fontSize: 13, lineHeight: 1.45, textDecoration: isChecked ? 'line-through' : 'none' }}>
                     <strong style={{ color: 'var(--accent)' }}>{[it.amount, it.unit].filter(Boolean).join(' ')}</strong>
                     {' '}{it.item}
                     {it.recipes.size > 1 && <span style={{ fontSize: 10, color: 'var(--text-muted)', display: 'block', marginTop: 1 }}>used in {it.recipes.size} recipes</span>}
                   </span>
                 </label>
-              ))}
+              ); })}
             </div>
           ))}
 
           <div className="btn-row">
+            <button className="btn btn-secondary" onClick={clearChecked}>Uncheck All</button>
             <button className="btn btn-secondary" onClick={onClose}>Close</button>
             <button className="btn btn-primary" onClick={copyList}>{copied ? '✓ Copied!' : 'Copy List'}</button>
           </div>
