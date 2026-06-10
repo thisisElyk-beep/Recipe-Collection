@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot, writeBatch } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot, writeBatch, setDoc } from 'firebase/firestore';
 import { getFirebaseDb, resetFirebaseDb } from './lib/firebase';
 import Sidebar from './components/Sidebar';
 import RecipeGrid from './components/RecipeGrid';
@@ -8,6 +8,7 @@ import AddRecipeModal from './components/AddRecipeModal';
 import SettingsModal from './components/SettingsModal';
 import SelectionBar from './components/SelectionBar';
 import ShoppingListModal from './components/ShoppingListModal';
+import MealPlanner from './components/MealPlanner';
 
 export default function App() {
   const [recipes, setRecipes] = useState([]);
@@ -23,6 +24,8 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [selectMode, setSelectMode] = useState(false);
   const [showShoppingList, setShowShoppingList] = useState(false);
+  const [showPlanner, setShowPlanner] = useState(false);
+  const [mealPlan, setMealPlan] = useState({});
   const [selectedIds, setSelectedIds] = useState(new Set());
 
   useEffect(() => {
@@ -42,6 +45,22 @@ export default function App() {
       setCustomCollections(snap.docs.map(d=>({id:d.id,...d.data()})));
     });
   }, []);
+
+  // Meal plan — single doc at mealplan/current
+  useEffect(() => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    return onSnapshot(doc(db,'mealplan','current'), snap => {
+      setMealPlan(snap.exists() ? (snap.data().plan || {}) : {});
+    });
+  }, []);
+
+  const updateMealPlan = async (newPlan) => {
+    setMealPlan(newPlan); // optimistic
+    const db = getFirebaseDb();
+    if (!db) return;
+    await setDoc(doc(db,'mealplan','current'), { plan: newPlan });
+  };
 
   const collections = ['All Recipes','Favorites',...customCollections.map(c=>c.name)];
   const allTags = [...new Set(recipes.flatMap(r=>r.tags||[]))].sort();
@@ -125,6 +144,7 @@ export default function App() {
         onDeleteCollection={deleteCollection}
         onOpenSettings={()=>setShowSettings(true)}
         onExport={exportRecipes}
+        onOpenPlanner={()=>setShowPlanner(true)}
         recipes={recipes}
       />
 
@@ -149,6 +169,16 @@ export default function App() {
           onSelectAll={()=>setSelectedIds(new Set(filteredRecipes.map(r=>r.id)))}
           onClear={()=>setSelectedIds(new Set())} onCancel={toggleSelectMode} totalVisible={filteredRecipes.length}
           onShoppingList={()=>setShowShoppingList(true)} />
+      )}
+
+      {showPlanner&&(
+        <MealPlanner
+          recipes={recipes}
+          plan={mealPlan}
+          onUpdatePlan={updateMealPlan}
+          onClose={()=>setShowPlanner(false)}
+          onOpenRecipe={r=>{setShowPlanner(false);setViewingRecipe(r);}}
+        />
       )}
 
       {showShoppingList&&(

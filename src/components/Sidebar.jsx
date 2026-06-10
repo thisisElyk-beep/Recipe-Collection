@@ -4,7 +4,7 @@ const COLLECTION_ICONS = { 'All Recipes': '◈', 'Favorites': '♡' };
 const SYSTEM_COLS = new Set(['All Recipes', 'Favorites']);
 const DEFAULT_TAG_LIMIT = 8;
 
-export default function Sidebar({ collections, selectedCollection, onSelectCollection, allTags, selectedTags, onToggleTag, onAddCollection, onDeleteCollection, onOpenSettings, onExport, recipes }) {
+export default function Sidebar({ collections, selectedCollection, onSelectCollection, allTags, selectedTags, onToggleTag, onAddCollection, onDeleteCollection, onOpenSettings, onExport, onOpenPlanner, recipes }) {
   const [addingCollection, setAddingCollection] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
   const [hoverCol, setHoverCol] = useState(null);
@@ -38,6 +38,14 @@ export default function Sidebar({ collections, selectedCollection, onSelectColle
       <div className="sidebar-logo">
         <h1>VAULT</h1>
         <span>Recipe Collection</span>
+      </div>
+
+      {/* Meal Planner nav */}
+      <div className="sidebar-section" style={{ paddingTop: 4 }}>
+        <div className="sidebar-item" onClick={onOpenPlanner} style={{ fontWeight: 500 }}>
+          <span style={{ fontSize: 13 }}>🗓</span>
+          <span style={{ flex: 1 }}>Meal Planner</span>
+        </div>
       </div>
 
       {/* Collections */}
