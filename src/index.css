@@ -917,3 +917,10 @@ body {
     grid-template-columns: repeat(4, 1fr);
   }
 }
+/* Recipe view live columns (display mode) stack on mobile */
+@media (max-width: 768px) {
+  .rv-columns-live {
+    grid-template-columns: 1fr !important;
+    gap: 28px !important;
+  }
+}

@@ -99,6 +99,7 @@ export default function ShoppingListModal({ recipes, onClose }) {
     } catch { return new Set(); }
   });
   const [copied, setCopied] = useState(false);
+  const [copiedPlain, setCopiedPlain] = useState(false);
 
   const persistChecked = (next) => {
     try { localStorage.setItem(storageKey, JSON.stringify([...next])); } catch {}
@@ -139,6 +140,18 @@ export default function ShoppingListModal({ recipes, onClose }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Plain list, no category headers — one item per line, for TickTick etc.
+  const copyPlain = () => {
+    const lines = [];
+    for (const [, list] of grouped) {
+      list.filter(it => !checked.has(itemKey(it)))
+        .forEach(it => lines.push([it.amount, it.unit, it.item].filter(Boolean).join(' ')));
+    }
+    navigator.clipboard.writeText(lines.join('\n'));
+    setCopiedPlain(true);
+    setTimeout(() => setCopiedPlain(false), 2000);
+  };
+
   return (
     <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal" style={{ maxWidth: 520, maxHeight: '88vh' }}>
@@ -173,9 +186,11 @@ export default function ShoppingListModal({ recipes, onClose }) {
             </div>
           ))}
 
-          <div className="btn-row">
+          <div className="btn-row" style={{ flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={clearChecked}>Uncheck All</button>
-            <button className="btn btn-secondary" onClick={onClose}>Close</button>
+            <button className="btn btn-secondary" onClick={copyPlain} title="Plain list with no category headers, for pasting into TickTick or other apps">
+              {copiedPlain ? '✓ Copied!' : 'Copy for App'}
+            </button>
             <button className="btn btn-primary" onClick={copyList}>{copied ? '✓ Copied!' : 'Copy List'}</button>
           </div>
           <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8, textAlign: 'right' }}>

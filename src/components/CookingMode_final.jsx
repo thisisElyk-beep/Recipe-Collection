@@ -15,7 +15,7 @@ function parseStepTime(instruction) {
   const hourMatch = text.match(/(\d+)\s*hour/);
   if (hourMatch) total += parseInt(hourMatch[1]) * 3600;
   const minMatch = text.match(/(\d+)(?:\s*(?:to|-)\s*(\d+))?\s*min/);
-  if (minMatch) total += (minMatch[2] ? parseInt(minMatch[2]) : parseInt(minMatch[1])) * 60;
+  if (minMatch) total += parseInt(minMatch[1]) * 60; // use LOW end of range
   const secMatch = text.match(/(\d+)\s*sec/);
   if (secMatch) total += parseInt(secMatch[1]);
   return total > 0 ? total : null;
