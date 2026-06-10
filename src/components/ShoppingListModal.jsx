@@ -4,7 +4,6 @@ import { useState, useMemo } from 'react';
 function parseAmount(str) {
   if (!str && str !== 0) return null;
   const s = str.toString().trim();
-  // Take upper bound of ranges
   const range = s.match(/^(.+?)\s*(?:-|to)\s*(.+)$/i);
   if (range) return parseAmount(range[2]);
   const mixed = s.match(/^(\d+)\s+(\d+)\/(\d+)$/);
@@ -27,7 +26,6 @@ function formatAmount(n) {
   return n % 1 === 0 ? n.toString() : n.toFixed(2).replace(/0+$/,'').replace(/\.$/,'');
 }
 
-// Normalize units for matching (cup/cups/Cup → cup)
 function normUnit(u) {
   if (!u) return '';
   const x = u.toLowerCase().replace(/\.$/,'').trim();
@@ -38,6 +36,35 @@ function normUnit(u) {
 function normItem(item) {
   return (item||'').toLowerCase().replace(/[^a-z\s]/g,'').replace(/\s+/g,' ').trim();
 }
+
+// ── Category classification ───────────────────────────────────────
+const CATEGORIES = [
+  { name: 'Produce', icon: '🥬', keywords: ['lettuce','spinach','kale','arugula','romaine','tomato','onion','garlic','carrot','celery','potato','sweet potato','pepper','broccoli','cauliflower','zucchini','squash','cucumber','mushroom','avocado','lemon','lime','orange','apple','banana','berry','berries','strawberr','blueberr','grape','herb','parsley','cilantro','basil','dill','mint','rosemary','thyme','sage','scallion','green onion','shallot','ginger','cabbage','brussels','asparagus','corn','pea','bean sprout','radish','beet','cranberr','raisin','date','fruit','vegetable','apricot','peach','pear','mango','pineapple','melon','jalapeno','chile','chili pepper','leek','fennel','eggplant','okra','turnip','parsnip','lemongrass','lime juice','lemon juice'] },
+  { name: 'Meat & Seafood', icon: '🥩', keywords: ['chicken','beef','pork','turkey','lamb','sausage','bacon','ham','steak','ground','salmon','shrimp','fish','tuna','cod','tilapia','crab','lobster','scallop','prosciutto','pancetta','chorizo','meatball','ribs','brisket','tenderloin','thigh','breast','wing','fillet','filet'] },
+  { name: 'Dairy & Eggs', icon: '🧀', keywords: ['milk','cream','butter','cheese','cheddar','mozzarella','parmesan','feta','ricotta','yogurt','egg','sour cream','half and half','buttermilk','cream cheese','muenster','monterey','gouda','brie','mascarpone','cottage cheese','whipping cream','heavy cream','ghee'] },
+  { name: 'Pantry & Dry Goods', icon: '🥫', keywords: ['flour','sugar','salt','pepper','oil','olive oil','vinegar','rice','pasta','noodle','orzo','quinoa','oat','lentil','bean','chickpea','broth','stock','sauce','soy sauce','tomato paste','tomato sauce','diced tomato','canned','can ','baking soda','baking powder','yeast','vanilla','cocoa','chocolate','honey','syrup','maple','cornstarch','breadcrumb','panko','cracker','cereal','nut','almond','walnut','pecan','cashew','peanut','seed','sesame','spice','cumin','paprika','cinnamon','oregano','chili powder','curry','turmeric','bay leaf','coriander','nutmeg','cayenne','garlic powder','onion powder','ketchup','mustard','mayo','mayonnaise','worcestershire','salsa','jam','jelly','peanut butter','tahini','coconut','raisin','chocolate chip','powdered sugar','brown sugar','condensed milk','evaporated milk','gelatin','pudding','cornmeal','semolina','wine','sherry','extract','sriracha','chile crisp','fish sauce','hoisin','molasses','shortening','lard','crisco'] },
+  { name: 'Bakery & Bread', icon: '🍞', keywords: ['bread','tortilla','bun','roll','bagel','pita','naan','baguette','croissant','crust','pie crust','dough','english muffin'] },
+  { name: 'Frozen', icon: '🧊', keywords: ['frozen','ice cream','frozen peas','frozen corn','frozen spinach','frozen berries'] },
+];
+
+function categorize(item) {
+  const text = normItem(item);
+  // Score each category by longest keyword match
+  let best = 'Other', bestLen = 0;
+  for (const cat of CATEGORIES) {
+    for (const kw of cat.keywords) {
+      if (text.includes(kw) && kw.length > bestLen) {
+        best = cat.name;
+        bestLen = kw.length;
+      }
+    }
+  }
+  return best;
+}
+
+const CAT_ORDER = ['Produce','Meat & Seafood','Dairy & Eggs','Bakery & Bread','Frozen','Pantry & Dry Goods','Other'];
+const CAT_ICON = Object.fromEntries(CATEGORIES.map(c => [c.name, c.icon]));
+CAT_ICON['Other'] = '📦';
 
 // ── Merge ingredients across recipes ──────────────────────────────
 function buildShoppingList(recipes) {
@@ -50,23 +77,15 @@ function buildShoppingList(recipes) {
         const existing = map.get(key);
         const a = parseAmount(existing.amount);
         const b = parseAmount(ing.amount);
-        if (a !== null && b !== null) {
-          existing.amount = formatAmount(a + b);
-        } else if (ing.amount && !existing.amount) {
-          existing.amount = ing.amount;
-        }
+        if (a !== null && b !== null) existing.amount = formatAmount(a + b);
+        else if (ing.amount && !existing.amount) existing.amount = ing.amount;
         existing.recipes.add(recipe.title);
       } else {
-        map.set(key, {
-          amount: ing.amount || '',
-          unit: ing.unit || null,
-          item: ing.item,
-          recipes: new Set([recipe.title]),
-        });
+        map.set(key, { amount: ing.amount || '', unit: ing.unit || null, item: ing.item, recipes: new Set([recipe.title]), category: categorize(ing.item) });
       }
     }
   }
-  return [...map.values()].sort((a, b) => a.item.localeCompare(b.item));
+  return [...map.values()];
 }
 
 export default function ShoppingListModal({ recipes, onClose }) {
@@ -74,13 +93,28 @@ export default function ShoppingListModal({ recipes, onClose }) {
   const [checked, setChecked] = useState(new Set());
   const [copied, setCopied] = useState(false);
 
+  // Group by category
+  const grouped = useMemo(() => {
+    const g = {};
+    items.forEach((it, i) => {
+      (g[it.category] = g[it.category] || []).push({ ...it, _idx: i });
+    });
+    Object.values(g).forEach(list => list.sort((a, b) => a.item.localeCompare(b.item)));
+    return CAT_ORDER.filter(c => g[c]).map(c => [c, g[c]]);
+  }, [items]);
+
   const toggle = (i) => setChecked(prev => { const n = new Set(prev); n.has(i) ? n.delete(i) : n.add(i); return n; });
 
   const copyList = () => {
-    const lines = items
-      .filter((_, i) => !checked.has(i))
-      .map(it => `- ${[it.amount, it.unit, it.item].filter(Boolean).join(' ')}`);
-    navigator.clipboard.writeText(lines.join('\n'));
+    const lines = [];
+    for (const [cat, list] of grouped) {
+      const unchecked = list.filter(it => !checked.has(it._idx));
+      if (!unchecked.length) continue;
+      lines.push(`${cat.toUpperCase()}`);
+      unchecked.forEach(it => lines.push(`- ${[it.amount, it.unit, it.item].filter(Boolean).join(' ')}`));
+      lines.push('');
+    }
+    navigator.clipboard.writeText(lines.join('\n').trim());
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -94,37 +128,34 @@ export default function ShoppingListModal({ recipes, onClose }) {
         </div>
         <div className="modal-body">
 
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.5 }}>
             {items.length} items from {recipes.length} recipe{recipes.length !== 1 ? 's' : ''}: <em>{recipes.map(r => r.title).join(', ')}</em>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 16 }}>
-            {items.map((it, i) => (
-              <label key={i} style={{
-                display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 4px',
-                borderBottom: '1px solid var(--border)', cursor: 'pointer',
-                opacity: checked.has(i) ? 0.45 : 1, transition: 'opacity 0.15s',
-              }}>
-                <input type="checkbox" checked={checked.has(i)} onChange={() => toggle(i)}
-                  style={{ marginTop: 3, accentColor: 'var(--accent)', width: 15, height: 15, flexShrink: 0 }} />
-                <span style={{ fontSize: 13, lineHeight: 1.45, textDecoration: checked.has(i) ? 'line-through' : 'none' }}>
-                  <strong style={{ color: 'var(--accent)' }}>{[it.amount, it.unit].filter(Boolean).join(' ')}</strong>
-                  {' '}{it.item}
-                  {it.recipes.size > 1 && (
-                    <span style={{ fontSize: 10, color: 'var(--text-muted)', display: 'block', marginTop: 1 }}>
-                      used in {it.recipes.size} recipes
-                    </span>
-                  )}
-                </span>
-              </label>
-            ))}
-          </div>
+          {grouped.map(([cat, list]) => (
+            <div key={cat} style={{ marginBottom: 18 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6, paddingBottom: 5, borderBottom: '2px solid var(--border)' }}>
+                <span style={{ fontSize: 14 }}>{CAT_ICON[cat]}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text)' }}>{cat}</span>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>({list.length})</span>
+              </div>
+              {list.map(it => (
+                <label key={it._idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '7px 4px', cursor: 'pointer', opacity: checked.has(it._idx) ? 0.4 : 1, transition: 'opacity 0.15s' }}>
+                  <input type="checkbox" checked={checked.has(it._idx)} onChange={() => toggle(it._idx)}
+                    style={{ marginTop: 2, accentColor: 'var(--accent)', width: 15, height: 15, flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, lineHeight: 1.45, textDecoration: checked.has(it._idx) ? 'line-through' : 'none' }}>
+                    <strong style={{ color: 'var(--accent)' }}>{[it.amount, it.unit].filter(Boolean).join(' ')}</strong>
+                    {' '}{it.item}
+                    {it.recipes.size > 1 && <span style={{ fontSize: 10, color: 'var(--text-muted)', display: 'block', marginTop: 1 }}>used in {it.recipes.size} recipes</span>}
+                  </span>
+                </label>
+              ))}
+            </div>
+          ))}
 
           <div className="btn-row">
             <button className="btn btn-secondary" onClick={onClose}>Close</button>
-            <button className="btn btn-primary" onClick={copyList}>
-              {copied ? '✓ Copied!' : 'Copy List'}
-            </button>
+            <button className="btn btn-primary" onClick={copyList}>{copied ? '✓ Copied!' : 'Copy List'}</button>
           </div>
           <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8, textAlign: 'right' }}>
             Checked items are excluded from the copy.
