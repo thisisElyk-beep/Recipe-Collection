@@ -16,7 +16,8 @@ export default function App() {
   const [selectedCollection, setSelectedCollection] = useState('All Recipes');
   const [selectedTags, setSelectedTags] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sort, setSort] = useState('newest');
+  const [sort, setSortState] = useState(() => { try { return localStorage.getItem('recipeSort') || 'newest'; } catch { return 'newest'; } });
+  const setSort = (v) => { setSortState(v); try { localStorage.setItem('recipeSort', v); } catch {} };
   const [viewingRecipe, setViewingRecipe] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -27,6 +28,7 @@ export default function App() {
   const [showPlanner, setShowPlanner] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mealPlan, setMealPlan] = useState({});
+  const [groceries, setGroceries] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
 
   useEffect(() => {
@@ -61,6 +63,22 @@ export default function App() {
     const db = getFirebaseDb();
     if (!db) return;
     await setDoc(doc(db,'mealplan','current'), { plan: newPlan });
+  };
+
+  // Saved grocery list — single doc at groceries/current
+  useEffect(() => {
+    const db = getFirebaseDb();
+    if (!db) return;
+    return onSnapshot(doc(db,'groceries','current'), snap => {
+      setGroceries(snap.exists() ? (snap.data().list || null) : null);
+    });
+  }, []);
+
+  const updateGroceries = async (newList) => {
+    setGroceries(newList); // optimistic
+    const db = getFirebaseDb();
+    if (!db) return;
+    await setDoc(doc(db,'groceries','current'), { list: newList });
   };
 
   const collections = ['All Recipes','Favorites',...customCollections.map(c=>c.name)];
@@ -183,6 +201,8 @@ export default function App() {
           onUpdatePlan={updateMealPlan}
           onClose={()=>setShowPlanner(false)}
           onOpenRecipe={r=>{setShowPlanner(false);setViewingRecipe(r);}}
+          groceries={groceries}
+          onUpdateGroceries={updateGroceries}
         />
       )}
 
@@ -190,6 +210,7 @@ export default function App() {
         <ShoppingListModal
           recipes={recipes.filter(r=>selectedIds.has(r.id))}
           onClose={()=>setShowShoppingList(false)}
+          onSaveToGroceries={(items)=>{updateGroceries({items,checked:[],savedAt:new Date().toISOString()});}}
         />
       )}
 

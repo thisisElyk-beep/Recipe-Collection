@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import ShoppingListModal from './ShoppingListModal';
+import GroceriesTab from './GroceriesTab';
 
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 const DAY_ABBR = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
@@ -27,7 +28,8 @@ const TYPE_ORDER = ['Breakfast','Lunch','Dinner','Sides','Dessert','Other'];
 const TYPE_ICON = Object.fromEntries(MEAL_TYPES.map(m => [m.name, m.icon]));
 TYPE_ICON['Other'] = '🍴';
 
-export default function MealPlanner({ recipes, plan, onUpdatePlan, onClose, onOpenRecipe }) {
+export default function MealPlanner({ recipes, plan, onUpdatePlan, onClose, onOpenRecipe, groceries, onUpdateGroceries }) {
+  const [tab, setTab] = useState('planner');
   const [pickerDay, setPickerDay] = useState(null);
   const [pickerSearch, setPickerSearch] = useState('');
   const [railSearch, setRailSearch] = useState('');
@@ -72,15 +74,24 @@ export default function MealPlanner({ recipes, plan, onUpdatePlan, onClose, onOp
   const filteredPickerRecipes = recipes.filter(r => !pickerSearch || r.title.toLowerCase().includes(pickerSearch.toLowerCase()));
   const totalMeals = Object.values(plan).reduce((sum, list) => sum + (list?.length||0), 0);
 
+  const saveToGroceries = (items) => {
+    onUpdateGroceries({ items, checked: [], savedAt: new Date().toISOString() });
+  };
+
   return (
     <div className="planner-root" style={{ position:'fixed', inset:0, zIndex:150, background:'var(--bg)', display:'flex', flexDirection:'column' }}>
       {/* Header */}
       <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 20px', borderBottom:'1px solid var(--border)', flexShrink:0, flexWrap:'wrap' }}>
         <button onClick={onClose} style={{ fontSize:13, color:'var(--text-muted)', cursor:'pointer', padding:'6px 10px', borderRadius:7, border:'none', background:'transparent', fontFamily:'var(--font-body)' }}>Back</button>
         <h2 style={{ fontFamily:'var(--font-display)', fontSize:20, fontWeight:500 }}>Meal Planner</h2>
-        <span style={{ fontSize:12, color:'var(--text-muted)' }}>{totalMeals} meal{totalMeals!==1?'s':''}</span>
+        <div style={{ display:'flex', gap:2, background:'var(--tag-bg)', borderRadius:8, padding:3 }}>
+          {[['planner','Planner'],['groceries','Groceries']].map(([t,label]) => (
+            <button key={t} onClick={() => setTab(t)} style={{ padding:'5px 14px', border:'none', borderRadius:6, fontSize:12, fontFamily:'var(--font-body)', cursor:'pointer', background: tab===t?'white':'transparent', color: tab===t?'var(--text)':'var(--text-muted)', fontWeight: tab===t?600:400 }}>{label}</button>
+          ))}
+        </div>
+        {tab === 'planner' && <span style={{ fontSize:12, color:'var(--text-muted)' }}>{totalMeals} meal{totalMeals!==1?'s':''}</span>}
         <div style={{ marginLeft:'auto', display:'flex', gap:8 }}>
-          {totalMeals > 0 && (
+          {tab === 'planner' && totalMeals > 0 && (
             <>
               <button onClick={clearWeek} style={{ padding:'7px 12px', borderRadius:7, border:'1px solid var(--border)', background:'var(--surface)', color:'var(--text-muted)', fontSize:12, fontFamily:'var(--font-body)', cursor:'pointer' }}>Clear</button>
               <button onClick={() => setShowShopping(true)} style={{ padding:'7px 14px', borderRadius:7, border:'none', background:'var(--accent)', color:'white', fontSize:12, fontWeight:600, fontFamily:'var(--font-body)', cursor:'pointer', whiteSpace:'nowrap' }}>🛒 Week List</button>
@@ -89,6 +100,11 @@ export default function MealPlanner({ recipes, plan, onUpdatePlan, onClose, onOp
         </div>
       </div>
 
+      {tab === 'groceries' ? (
+        <div style={{ flex:1, overflowY:'auto' }}>
+          <GroceriesTab savedList={groceries} onUpdate={onUpdateGroceries} />
+        </div>
+      ) : (
       <div className="planner-body" style={{ flex:1, display:'flex', overflow:'hidden' }}>
         {/* Recipe rail grouped by meal type */}
         <div className="planner-rail" style={{ width:240, borderRight:'1px solid var(--border)', display:'flex', flexDirection:'column', flexShrink:0, background:'var(--surface)' }}>
@@ -155,6 +171,8 @@ export default function MealPlanner({ recipes, plan, onUpdatePlan, onClose, onOp
         </div>
       </div>
 
+      )}
+
       {/* Click-to-add picker */}
       {pickerDay && (
         <div className="modal-overlay" onClick={e => { if (e.target===e.currentTarget) setPickerDay(null); }}>
@@ -181,7 +199,7 @@ export default function MealPlanner({ recipes, plan, onUpdatePlan, onClose, onOp
         </div>
       )}
 
-      {showShopping && <ShoppingListModal recipes={plannedRecipes} onClose={() => setShowShopping(false)} />}
+      {showShopping && <ShoppingListModal recipes={plannedRecipes} onClose={() => setShowShopping(false)} onSaveToGroceries={(items) => { saveToGroceries(items); setTab('groceries'); setShowShopping(false); }} />}
     </div>
   );
 }

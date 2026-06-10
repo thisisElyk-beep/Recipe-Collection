@@ -88,7 +88,7 @@ function buildShoppingList(recipes) {
   return [...map.values()];
 }
 
-export default function ShoppingListModal({ recipes, onClose }) {
+export default function ShoppingListModal({ recipes, onClose, onSaveToGroceries }) {
   const items = useMemo(() => buildShoppingList(recipes), [recipes]);
   // Persist checked state across reopens, keyed by item identity
   const storageKey = 'shoppingChecked';
@@ -100,6 +100,7 @@ export default function ShoppingListModal({ recipes, onClose }) {
   });
   const [copied, setCopied] = useState(false);
   const [copiedPlain, setCopiedPlain] = useState(false);
+  const [savedToGroceries, setSavedToGroceries] = useState(false);
 
   const persistChecked = (next) => {
     try { localStorage.setItem(storageKey, JSON.stringify([...next])); } catch {}
@@ -188,13 +189,17 @@ export default function ShoppingListModal({ recipes, onClose }) {
 
           <div className="btn-row" style={{ flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={clearChecked}>Uncheck All</button>
-            <button className="btn btn-secondary" onClick={copyPlain} title="Plain list with no category headers, for pasting into TickTick or other apps">
-              {copiedPlain ? '✓ Copied!' : 'Copy for App'}
+            {onSaveToGroceries && (
+              <button className="btn btn-secondary" onClick={() => { onSaveToGroceries(items); setSavedToGroceries(true); setTimeout(() => setSavedToGroceries(false), 2000); }}>
+                {savedToGroceries ? '✓ Saved!' : 'Save to Groceries'}
+              </button>
+            )}
+            <button className="btn btn-primary" onClick={copyPlain} title="Plain list, no category headers — for pasting into TickTick or other apps">
+              {copiedPlain ? '✓ Copied!' : 'Export'}
             </button>
-            <button className="btn btn-primary" onClick={copyList}>{copied ? '✓ Copied!' : 'Copy List'}</button>
           </div>
           <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8, textAlign: 'right' }}>
-            Checked items are excluded from the copy.
+            Checked items are excluded from Export.
           </div>
         </div>
       </div>
