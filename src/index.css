@@ -924,3 +924,13 @@ body {
     gap: 28px !important;
   }
 }
+/* ─── Planner slots mobile patch — append to END of src/index.css ─── */
+@media (max-width: 768px) {
+  /* Slotted day cards stack vertically; slots stay side by side inside each day */
+  .planner-grid > div {
+    min-height: unset !important;
+  }
+  .planner-grid > div > div:not(:first-child) {
+    min-height: 60px !important;
+  }
+}

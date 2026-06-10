@@ -33,7 +33,7 @@ export function normUnit(u) {
 }
 
 export function normItem(item) {
-  return (item||'').toLowerCase().replace(/[^a-z\s]/g,'').replace(/\s+/g,' ').trim();
+  return (item||'').toLowerCase().replace(/[-_/]/g,' ').replace(/[^a-z\s]/g,'').replace(/\s+/g,' ').trim();
 }
 
 export const CATEGORIES = [
@@ -96,11 +96,22 @@ export const PRESET_STAPLES = {
 };
 
 // Does a grocery item match any active staple?
+// One-directional, word-boundary match: the staple phrase must appear
+// whole inside the item. "olive oil" staple matches "extra-virgin olive oil"
+// item, but "garlic powder" staple does NOT match a "garlic" item, and a
+// "garlic" staple does not match "garlic powder"... wait, it would — see
+// singular note below. Whole-phrase boundary prevents partial-word hits.
+function singularizeWords(s) {
+  return s.split(' ').map(w => w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w).join(' ');
+}
+
 export function matchesStaple(item, staples) {
   if (!staples || !staples.length) return false;
-  const text = normItem(item);
+  const text = ' ' + singularizeWords(normItem(item)) + ' ';
   return staples.some(s => {
-    const st = normItem(s);
-    return text.includes(st) || st.includes(text);
+    const st = singularizeWords(normItem(s));
+    if (!st) return false;
+    // Staple phrase must appear as whole words within the item
+    return text.includes(' ' + st + ' ');
   });
 }

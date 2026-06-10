@@ -91,12 +91,12 @@ export default function ShoppingListModal({ recipes, onClose, onSaveToGroceries,
 
   return (
     <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal" style={{ maxWidth: 520, maxHeight: '88vh' }}>
-        <div className="modal-header">
+      <div className="modal" style={{ maxWidth: 520, maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div className="modal-header" style={{ flexShrink: 0 }}>
           <h2>Shopping List</h2>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
-        <div className="modal-body">
+        <div className="modal-body" style={{ flex: 1, overflowY: 'auto', paddingBottom: 8 }}>
 
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.5 }}>
             {items.length} items from {recipes.length} recipe{recipes.length !== 1 ? 's' : ''}: <em>{recipes.map(r => r.title).join(', ')}</em>
@@ -124,7 +124,11 @@ export default function ShoppingListModal({ recipes, onClose, onSaveToGroceries,
             </div>
           ))}
 
-          <div className="btn-row" style={{ flexWrap: 'wrap' }}>
+        </div>
+
+        {/* Pinned footer — always visible while the list scrolls */}
+        <div style={{ flexShrink: 0, borderTop: '1px solid var(--border)', padding: '12px 20px 14px', background: 'var(--surface)' }}>
+          <div className="btn-row" style={{ flexWrap: 'wrap', marginTop: 0 }}>
             <button className="btn btn-secondary" onClick={clearChecked}>Uncheck All</button>
             {onSaveToGroceries && (
               <button className="btn btn-secondary" onClick={() => { onSaveToGroceries(items.map(it => ({ ...it, recipes: [...it.recipes] })), [...checked]); setSavedToGroceries(true); setTimeout(() => setSavedToGroceries(false), 2000); }}>
@@ -135,7 +139,7 @@ export default function ShoppingListModal({ recipes, onClose, onSaveToGroceries,
               {copiedPlain ? '✓ Copied!' : 'Export'}
             </button>
           </div>
-          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8, textAlign: 'right' }}>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6, textAlign: 'right' }}>
             Checked items are excluded from Export.
           </div>
         </div>
