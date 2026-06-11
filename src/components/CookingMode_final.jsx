@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { decodeEntities } from '../lib/scraper';
 
 // ── Wake Lock ────────────────────────────────────────────────────
 async function requestWakeLock() {
@@ -203,7 +204,16 @@ export default function CookingMode({ recipe, scale, onClose }) {
     };
 
     rec.onend = () => {
-      if (rec._shouldRun) { try { rec.start(); } catch {} }
+      if (!rec._shouldRun) return;
+      // Speech engines self-terminate periodically. Restarting immediately can
+      // throw InvalidStateError if the engine hasn't fully stopped — retry with
+      // a delay, and once more if the first retry also fails.
+      setTimeout(() => {
+        if (!rec._shouldRun) return;
+        try { rec.start(); } catch {
+          setTimeout(() => { if (rec._shouldRun) { try { rec.start(); } catch {} } }, 600);
+        }
+      }, 250);
     };
 
     rec._shouldRun = false;
@@ -315,7 +325,7 @@ export default function CookingMode({ recipe, scale, onClose }) {
                   <div style={{ fontSize: 20, fontWeight: 700, color: '#C4622D', letterSpacing: '-0.02em', lineHeight: 1, marginBottom: 4 }}>
                     {[ing.amount, ing.unit].filter(Boolean).join(' ') || '-'}
                   </div>
-                  <div style={{ fontSize: 15, fontWeight: 500, color: '#2A2520', lineHeight: 1.3 }}>{ing.item}</div>
+                  <div style={{ fontSize: 15, fontWeight: 500, color: '#2A2520', lineHeight: 1.3 }}>{decodeEntities(ing.item)}</div>
                   {ing.note && <div style={{ fontSize: 12, color: '#8A7F75', marginTop: 3, fontStyle: 'italic' }}>{ing.note}</div>}
                 </div>
               ))}
@@ -336,7 +346,7 @@ export default function CookingMode({ recipe, scale, onClose }) {
           </div>
 
           <p style={{ fontSize: ['18px','clamp(22px,3vw,32px)','clamp(28px,4vw,44px)'][textSize], fontWeight: 400, lineHeight: 1.6, color: '#2A2520', maxWidth: 700, marginBottom: stepTime ? 32 : 48, letterSpacing: '-0.01em', transition: 'font-size 0.2s' }}>
-            {cur?.instruction}
+            {decodeEntities(cur?.instruction || '')}
           </p>
 
           {/* Timer */}

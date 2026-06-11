@@ -75,8 +75,20 @@ export default function MealPlanner({ recipes, plan, onUpdatePlan, onClose, onOp
 
   const handleDrop = (day, slot) => {
     const recipeId = window.__draggedRecipeId;
-    if (recipeId) addToSlot(day, slot, recipeId);
-    setDragOver(null); window.__draggedRecipeId = null;
+    const src = window.__dragSource; // { day, slot } when moving an already-planned card
+    if (recipeId) {
+      let next = { ...plan };
+      if (src && !(src.day === day && src.slot === slot)) {
+        const sSlots = daySlots(next, src.day);
+        next[src.day] = { ...sSlots, [src.slot]: sSlots[src.slot].filter(id => id !== recipeId) };
+      }
+      const tSlots = daySlots(next, day);
+      if (!tSlots[slot].includes(recipeId)) {
+        next[day] = { ...tSlots, [slot]: [...tSlots[slot], recipeId] };
+      }
+      onUpdatePlan(next);
+    }
+    setDragOver(null); window.__draggedRecipeId = null; window.__dragSource = null;
   };
 
   const toggleType = (t) => setCollapsedTypes(prev => { const n = new Set(prev); n.has(t) ? n.delete(t) : n.add(t); return n; });
@@ -146,7 +158,7 @@ export default function MealPlanner({ recipes, plan, onUpdatePlan, onClose, onOp
                   </div>
                   {!collapsed && list.map(r => (
                     <div key={r.id} draggable
-                      onDragStart={() => { window.__draggedRecipeId = r.id; }}
+                      onDragStart={() => { window.__draggedRecipeId = r.id; window.__dragSource = null; }}
                       onClick={() => onOpenRecipe(r)}
                       style={{ padding:'7px 9px', marginBottom:4, marginLeft:4, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:7, cursor:'grab', fontSize:12, fontWeight:500, color:'var(--text)', display:'flex', alignItems:'center', gap:7 }}
                       onMouseEnter={e => e.currentTarget.style.borderColor='var(--accent)'}
@@ -167,7 +179,7 @@ export default function MealPlanner({ recipes, plan, onUpdatePlan, onClose, onOp
             {DAYS.map((day, i) => {
               const slots = daySlots(plan, day);
               return (
-                <div key={day} style={{ display:'flex', flexDirection:'column', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, padding:8, minHeight:300 }}>
+                <div key={day} style={{ display:'flex', flexDirection:'column', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, padding:8, minHeight:420 }}>
                   <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', marginBottom:8, textAlign:'center', letterSpacing:'0.04em' }}>{DAY_ABBR[i]}</div>
 
                   {SLOTS.map(slot => {
@@ -178,16 +190,19 @@ export default function MealPlanner({ recipes, plan, onUpdatePlan, onClose, onOp
                         onDragOver={e => { e.preventDefault(); setDragOver(`${day}|${slot}`); }}
                         onDragLeave={() => setDragOver(null)}
                         onDrop={() => handleDrop(day, slot)}
-                        style={{ flex:1, display:'flex', flexDirection:'column', marginBottom:6, borderRadius:8, padding:5, minHeight:74, background: isOver ? 'var(--accent-light)' : 'var(--bg)', border: isOver ? '2px dashed var(--accent)' : '1px dashed var(--border)', transition:'all 0.12s' }}>
+                        style={{ flex:1, display:'flex', flexDirection:'column', marginBottom:6, borderRadius:8, padding:5, minHeight:110, background: isOver ? 'var(--accent-light)' : 'var(--bg)', border: isOver ? '2px dashed var(--accent)' : '1px dashed var(--border)', transition:'all 0.12s' }}>
                         <div style={{ fontSize:8.5, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--text-muted)', marginBottom:4, display:'flex', alignItems:'center', gap:3 }}>
                           <span style={{ fontSize:9 }}>{SLOT_ICON[slot]}</span>{SLOT_LABEL[slot]}
                         </div>
                         <div style={{ flex:1, display:'flex', flexDirection:'column', gap:4 }}>
                           {meals.map(r => (
-                            <div key={r.id} onClick={() => onOpenRecipe(r)} style={{ position:'relative', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:6, overflow:'hidden', cursor:'pointer' }}>
-                              {r.image_url && <img src={r.image_url} alt="" style={{ width:'100%', height:36, objectFit:'cover', display:'block' }} onError={e => e.target.style.display='none'} />}
-                              <div style={{ padding:'4px 6px', fontSize:9.5, fontWeight:500, lineHeight:1.25, color:'var(--text)' }}>{r.title}</div>
-                              <button onClick={e => { e.stopPropagation(); removeFromSlot(day, slot, r.id); }} style={{ position:'absolute', top:2, right:2, width:14, height:14, borderRadius:'50%', background:'rgba(0,0,0,0.5)', border:'none', color:'white', fontSize:9, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1 }}>×</button>
+                            <div key={r.id} draggable
+                              onDragStart={() => { window.__draggedRecipeId = r.id; window.__dragSource = { day, slot }; }}
+                              onClick={() => onOpenRecipe(r)}
+                              style={{ position:'relative', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:7, overflow:'hidden', cursor:'grab', flex:1, display:'flex', flexDirection:'column', minHeight:78 }}>
+                              {r.image_url && <img src={r.image_url} alt="" style={{ width:'100%', height:56, objectFit:'cover', display:'block', flexShrink:0 }} onError={e => e.target.style.display='none'} />}
+                              <div style={{ padding:'6px 8px', fontSize:11, fontWeight:500, lineHeight:1.3, color:'var(--text)', flex:1, display:'flex', alignItems:'center' }}>{r.title}</div>
+                              <button onClick={e => { e.stopPropagation(); removeFromSlot(day, slot, r.id); }} style={{ position:'absolute', top:3, right:3, width:16, height:16, borderRadius:'50%', background:'rgba(0,0,0,0.55)', border:'none', color:'white', fontSize:10, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1 }}>×</button>
                             </div>
                           ))}
                           <button onClick={() => { setPicker({ day, slot }); setPickerSearch(''); }} style={{ marginTop:'auto', padding:'3px', border:'none', borderRadius:5, background:'transparent', color:'var(--text-muted)', fontSize:10, cursor:'pointer', fontFamily:'var(--font-body)', opacity:0.6 }}>+</button>

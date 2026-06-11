@@ -17,6 +17,19 @@ async function fetchViaProxy(url) {
   throw new Error(`Could not fetch the page. The site may block scrapers, or try again shortly. (${lastError?.message})`);
 }
 
+// ── HTML entity decoding ──────────────────────────────────────────
+export function decodeEntities(s) {
+  if (!s) return s;
+  return s
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)))
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&nbsp;/g, ' ')
+    .replace(/&rsquo;/g, "'").replace(/&lsquo;/g, "'")
+    .replace(/&rdquo;/g, '"').replace(/&ldquo;/g, '"')
+    .replace(/&ndash;/g, '-').replace(/&mdash;/g, '-');
+}
+
 // ── Unicode fraction normalization ────────────────────────────────
 const UNICODE_FRACS = { '½':'1/2','¼':'1/4','¾':'3/4','⅓':'1/3','⅔':'2/3','⅛':'1/8','⅜':'3/8','⅝':'5/8','⅞':'7/8' };
 function normalizeFractions(str) {
@@ -37,7 +50,7 @@ function parseDuration(dur) {
 
 // ── Ingredient string parser ──────────────────────────────────────
 function parseIngredient(str) {
-  const text = normalizeFractions(str.trim()); // normalize BEFORE regex
+  const text = normalizeFractions(decodeEntities(str.trim())); // normalize BEFORE regex
   const UNITS = 'cups?|tablespoons?|tbsp?\\.?|teaspoons?|tsps?\\.?|pounds?|lbs?\\.?|ounces?|oz\\.?|grams?|g\\.?|kilograms?|kg|liters?|l\\.?|milliliters?|ml|cloves?|slices?|pieces?|cans?|packages?|pkgs?\\.?|bunches?|stalks?|sprigs?|pinch(?:es)?|dash(?:es)?|inches?|quarts?|pints?';
   const FRAC = '(?:\\d+\\s+)?(?:\\d+\\/\\d+|\\d*\\.\\d+|\\d+)';
   const re = new RegExp(`^(${FRAC})?\\s*(${UNITS})?\\s*(.+?)(?:,\\s*(.+))?$`, 'i');
@@ -59,7 +72,7 @@ function parseInstructions(raw) {
   const arr = Array.isArray(raw) ? raw : [raw];
   const steps = []; let num = 1;
   function addStep(text) {
-    const clean = text?.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
+    const clean = decodeEntities(text?.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim() || '');
     if (clean && clean.length > 3) steps.push({ number: num++, instruction: clean });
   }
   for (const item of arr) {
@@ -103,8 +116,8 @@ export async function scrapeRecipeFromUrl(url) {
         else if (recipe.image.url) image_url = recipe.image.url;
       }
       return {
-        title: recipe.name||'',
-        description: recipe.description?.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim()||'',
+        title: decodeEntities(recipe.name||''),
+        description: decodeEntities(recipe.description?.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim()||''),
         source_url: url,
         prep_time: parseDuration(recipe.prepTime),
         cook_time: parseDuration(recipe.cookTime),

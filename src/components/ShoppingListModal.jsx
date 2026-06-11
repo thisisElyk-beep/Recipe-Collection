@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { parseAmount, formatAmount, normUnit, normItem, categorize, CAT_ORDER, CAT_ICON, matchesStaple } from '../lib/grocery';
+import { useState, useMemo, useEffect } from 'react';
+import { parseAmount, formatAmount, normUnit, normItem, normKey, categorize, CAT_ORDER, CAT_ICON, matchesStaple } from '../lib/grocery';
 
 // ── Merge ingredients across recipes ──────────────────────────────
 function buildShoppingList(recipes) {
@@ -7,7 +7,7 @@ function buildShoppingList(recipes) {
   for (const recipe of recipes) {
     for (const ing of (recipe.ingredients || [])) {
       if (!ing.item) continue;
-      const key = `${normItem(ing.item)}|${normUnit(ing.unit)}`;
+      const key = normKey(ing.item, ing.unit);
       if (map.has(key)) {
         const existing = map.get(key);
         const a = parseAmount(existing.amount);
@@ -28,12 +28,20 @@ export default function ShoppingListModal({ recipes, onClose, onSaveToGroceries,
   // Persist checked state across reopens, keyed by item identity
   const storageKey = 'shoppingChecked';
   const [checked, setChecked] = useState(() => {
-    let saved = [];
-    try { saved = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch {}
-    // Auto-check staples
-    const stapleKeys = items.filter(it => matchesStaple(it.item, staples)).map(it => `${it.item}|${it.unit||''}`);
-    return new Set([...saved, ...stapleKeys]);
+    try { return new Set(JSON.parse(localStorage.getItem(storageKey) || '[]')); } catch { return new Set(); }
   });
+
+  // Auto-check staples — runs whenever items or staples change (staples load async from Firebase)
+  useEffect(() => {
+    if (!staples?.length) return;
+    const stapleKeys = items.filter(it => matchesStaple(it.item, staples)).map(it => `${it.item}|${it.unit||''}`);
+    if (!stapleKeys.length) return;
+    setChecked(prev => {
+      const next = new Set(prev);
+      stapleKeys.forEach(k => next.add(k));
+      return next;
+    });
+  }, [items, staples]);
   const [copied, setCopied] = useState(false);
   const [copiedPlain, setCopiedPlain] = useState(false);
   const [savedToGroceries, setSavedToGroceries] = useState(false);

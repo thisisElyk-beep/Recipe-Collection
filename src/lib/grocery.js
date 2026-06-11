@@ -65,11 +65,11 @@ export function mergeIngredientsIntoList(existingItems, recipe) {
   const map = new Map();
   // Seed with existing
   for (const it of (existingItems || [])) {
-    map.set(`${normItem(it.item)}|${normUnit(it.unit)}`, { ...it, recipes: new Set(it.recipes || []) });
+    map.set(normKey(it.item, it.unit), { ...it, recipes: new Set(it.recipes || []) });
   }
   for (const ing of (recipe.ingredients || [])) {
     if (!ing.item) continue;
-    const key = `${normItem(ing.item)}|${normUnit(ing.unit)}`;
+    const key = normKey(ing.item, ing.unit);
     if (map.has(key)) {
       const existing = map.get(key);
       const a = parseAmount(existing.amount);
@@ -101,17 +101,39 @@ export const PRESET_STAPLES = {
 // item, but "garlic powder" staple does NOT match a "garlic" item, and a
 // "garlic" staple does not match "garlic powder"... wait, it would — see
 // singular note below. Whole-phrase boundary prevents partial-word hits.
-function singularizeWords(s) {
+export function singularizeWords(s) {
   return s.split(' ').map(w => w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w).join(' ');
 }
 
+// Canonical key for merging duplicate ingredients across recipes
+export function normKey(item, unit) {
+  return `${singularizeWords(normItem(item))}|${normUnit(unit)}`;
+}
+
+// Words that can precede a staple without making it a different product
+const DESCRIPTORS = new Set(['fresh','dried','ground','large','small','medium','extra','virgin','pure','organic','whole','raw','plain','light','dark','unsalted','salted','sweetened','unsweetened','reduced','fat','low','sodium','gluten','free','all','purpose','style','packed','granulated','melted','softened','cold','warm','hot','room','temperature']);
+// Forms a staple can come in without being a different product
+const FORMS = new Set(['clove','head','bulb','leaf','sprig','stalk','stick','slice','piece','cube','pat']);
+
 export function matchesStaple(item, staples) {
   if (!staples || !staples.length) return false;
-  const text = ' ' + singularizeWords(normItem(item)) + ' ';
+  const itemWords = singularizeWords(normItem(item)).split(' ').filter(Boolean);
   return staples.some(s => {
-    const st = singularizeWords(normItem(s));
-    if (!st) return false;
-    // Staple phrase must appear as whole words within the item
-    return text.includes(' ' + st + ' ');
+    const stWords = singularizeWords(normItem(s)).split(' ').filter(Boolean);
+    if (!stWords.length) return false;
+    const n = itemWords.length, m = stWords.length;
+    // Find the staple phrase as a contiguous run inside the item
+    for (let i = 0; i + m <= n; i++) {
+      let hit = true;
+      for (let j = 0; j < m; j++) if (itemWords[i + j] !== stWords[j]) { hit = false; break; }
+      if (!hit) continue;
+      const prefix = itemWords.slice(0, i);
+      const suffix = itemWords.slice(i + m);
+      // Prefix words must all be harmless descriptors ("extra virgin" olive oil — yes;
+      // "sea" salt — no). Suffix words must be forms/descriptors ("garlic cloves" — yes;
+      // "garlic powder" — no, powder is a different product).
+      if (prefix.every(w => DESCRIPTORS.has(w)) && suffix.every(w => FORMS.has(w) || DESCRIPTORS.has(w))) return true;
+    }
+    return false;
   });
 }

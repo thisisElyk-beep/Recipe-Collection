@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import CookingMode from './CookingMode';
+import { decodeEntities } from '../lib/scraper';
 
 const UNICODE_FRACS = { '\u00bd':'1/2','\u00bc':'1/4','\u00be':'3/4','\u2153':'1/3','\u2154':'2/3','\u215b':'1/8','\u215c':'3/8','\u215d':'5/8','\u215e':'7/8' };
 function normalizeFracs(s) { return s.replace(/[\u00bd\u00bc\u00be\u2153\u2154\u215b\u215c\u215d\u215e]/g, m => UNICODE_FRACS[m]); }
@@ -309,7 +310,7 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
                       {ingredients.map((ing, i) => (
                         <li key={i} style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border)', fontSize: 14, lineHeight: 1.4, ...(i === 0 ? { borderTop: '1px solid var(--border)' } : {}) }}>
                           <span style={{ fontWeight: 600, minWidth: 72, color: 'var(--accent)', fontSize: 13, flexShrink: 0 }}>{scaleAmt(ing.amount, scale)}{ing.unit ? ` ${ing.unit}` : ''}</span>
-                          <span>{ing.item}{ing.note && <span style={{ color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic', display: 'block', marginTop: 2 }}>{ing.note}</span>}</span>
+                          <span>{decodeEntities(ing.item)}{ing.note && <span style={{ color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic', display: 'block', marginTop: 2 }}>{ing.note}</span>}</span>
                         </li>
                       ))}
                     </ul>
@@ -320,7 +321,7 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
                       {steps.map((step, i) => (
                         <li key={i} style={{ display: 'flex', gap: 16 }}>
                           <span style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--accent)', color: 'white', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>{step.number || i + 1}</span>
-                          <p style={{ fontSize: 15, lineHeight: 1.7, paddingTop: 4 }}>{step.instruction}</p>
+                          <p style={{ fontSize: 15, lineHeight: 1.7, paddingTop: 4 }}>{decodeEntities(step.instruction)}</p>
                         </li>
                       ))}
                     </ol>
