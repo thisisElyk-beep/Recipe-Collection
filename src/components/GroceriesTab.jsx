@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CAT_ICON, CAT_ORDER, matchesStaple, amountText, coreItem } from '../lib/grocery';
+import { CAT_ICON, CAT_ORDER, matchesStaple, shoppingAmountText, coreItem } from '../lib/grocery';
 
 export default function GroceriesTab({ savedList, onUpdate, staples }) {
   const [copied, setCopied] = useState(false);
@@ -22,7 +22,7 @@ export default function GroceriesTab({ savedList, onUpdate, staples }) {
   };
 
   const exportList = () => {
-    const lines = items.filter(it => !checked.has(itemKey(it))).map(it => [amountText(it), it.item].filter(Boolean).join(' '));
+    const lines = items.filter(it => !checked.has(itemKey(it))).map(it => [shoppingAmountText(it), it.item].filter(Boolean).join(' '));
     navigator.clipboard.writeText(lines.join('\n'));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -74,7 +74,7 @@ export default function GroceriesTab({ savedList, onUpdate, staples }) {
               <label key={it._idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '7px 4px', cursor: 'pointer', opacity: isChecked ? 0.4 : 1, transition: 'opacity 0.15s' }}>
                 <input type="checkbox" checked={isChecked} onChange={() => toggle(it)} style={{ marginTop: 2, accentColor: 'var(--accent)', width: 15, height: 15, flexShrink: 0 }} />
                 <span style={{ fontSize: 13, lineHeight: 1.45, textDecoration: isChecked ? 'line-through' : 'none' }}>
-                  <strong style={{ color: 'var(--accent)' }}>{amountText(it)}</strong> {it.item}
+                  <strong style={{ color: 'var(--accent)' }}>{shoppingAmountText(it)}</strong> {it.item}
                   {matchesStaple(it.item, staples) && <span style={{ fontSize: 9, fontWeight: 600, color: '#7A3A18', background: 'var(--accent-light)', borderRadius: 20, padding: '1px 7px', marginLeft: 6, verticalAlign: 'middle' }}>staple</span>}
                 </span>
               </label>

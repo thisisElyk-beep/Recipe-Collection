@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { buildShoppingList, amountText, coreItem, CAT_ORDER, CAT_ICON, matchesStaple } from '../lib/grocery';
+import { buildShoppingList, shoppingAmountText, coreItem, CAT_ORDER, CAT_ICON, matchesStaple } from '../lib/grocery';
 
 export default function ShoppingListModal({ recipes, onClose, onSaveToGroceries, staples }) {
   const items = useMemo(() => buildShoppingList(recipes), [recipes]);
@@ -55,7 +55,7 @@ export default function ShoppingListModal({ recipes, onClose, onSaveToGroceries,
       const unchecked = list.filter(it => !checked.has(itemKey(it)));
       if (!unchecked.length) continue;
       lines.push(`${cat.toUpperCase()}`);
-      unchecked.forEach(it => lines.push(`- ${[amountText(it), it.item].filter(Boolean).join(' ')}`));
+      unchecked.forEach(it => lines.push(`- ${[shoppingAmountText(it), it.item].filter(Boolean).join(' ')}`));
       lines.push('');
     }
     navigator.clipboard.writeText(lines.join('\n').trim());
@@ -68,7 +68,7 @@ export default function ShoppingListModal({ recipes, onClose, onSaveToGroceries,
     const lines = [];
     for (const [, list] of grouped) {
       list.filter(it => !checked.has(itemKey(it)))
-        .forEach(it => lines.push([amountText(it), it.item].filter(Boolean).join(' ')));
+        .forEach(it => lines.push([shoppingAmountText(it), it.item].filter(Boolean).join(' ')));
     }
     navigator.clipboard.writeText(lines.join('\n'));
     setCopiedPlain(true);
@@ -100,7 +100,7 @@ export default function ShoppingListModal({ recipes, onClose, onSaveToGroceries,
                   <input type="checkbox" checked={isChecked} onChange={() => toggle(it)}
                     style={{ marginTop: 2, accentColor: 'var(--accent)', width: 15, height: 15, flexShrink: 0 }} />
                   <span style={{ fontSize: 13, lineHeight: 1.45, textDecoration: isChecked ? 'line-through' : 'none' }}>
-                    <strong style={{ color: 'var(--accent)' }}>{amountText(it)}</strong>
+                    <strong style={{ color: 'var(--accent)' }}>{shoppingAmountText(it)}</strong>
                     {' '}{it.item}
                     {matchesStaple(it.item, staples) && <span style={{ fontSize: 9, fontWeight: 600, color: '#7A3A18', background: 'var(--accent-light)', borderRadius: 20, padding: '1px 7px', marginLeft: 6, verticalAlign: 'middle' }}>staple</span>}
                     {it.recipes.size > 1 && <span style={{ fontSize: 10, color: 'var(--text-muted)', display: 'block', marginTop: 1 }}>used in {it.recipes.size} recipes</span>}

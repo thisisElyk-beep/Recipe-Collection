@@ -41,7 +41,7 @@ export function singularizeWords(s) {
 }
 
 // Words that can precede a staple/item without making it a different product
-const DESCRIPTORS = new Set(['fresh','dried','ground','large','small','medium','baby','extra','virgin','pure','organic','whole','raw','plain','light','dark','unsalted','salted','sweetened','unsweetened','reduced','fat','low','sodium','gluten','free','all','purpose','style','packed','granulated','melted','softened','cold','warm','hot','room','temperature']);
+const DESCRIPTORS = new Set(['fresh','dried','ground','large','small','medium','baby','extra','virgin','pure','organic','whole','raw','plain','light','dark','unsalted','salted','sweetened','unsweetened','reduced','fat','low','sodium','gluten','free','all','purpose','style','packed','granulated','melted','softened','cold','warm','hot','room','temperature','shredded','grated','chopped','sliced','diced','minced','crumbled','cubed','torn','beaten','crushed','divided','refrigerated','thawed','drained','rinsed']);
 // Forms an item can come in without being a different product
 const FORMS = new Set(['clove','head','bulb','leaf','sprig','stalk','stick','slice','piece','cube','pat']);
 
@@ -95,6 +95,25 @@ export function amountText(it) {
   return [it.amount, it.unit].filter(Boolean).join(' ');
 }
 
+// Shopping-list amount display: hide cooking measures, keep purchase info.
+// "3 tsp pepper" -> "pepper"; "3 mangos" -> "3 mangos"; "2 cans (14.5 oz)" kept;
+// "2 lbs ground beef" kept; "8 clove garlic" kept.
+const MEASURE_UNITS = new Set(['tsp','tbsp','cup','pinch','dash','ml','l','liter','quart','pint','fl oz','floz']);
+const SIZE_WORDS = new Set(['large','medium','small']);
+
+export function shoppingAmountText(it) {
+  const parts = (it.parts && it.parts.length) ? it.parts : [{ amount: it.amount, unit: it.unit }];
+  const out = [];
+  for (const p of parts) {
+    const u = normUnit(p.unit);
+    if (!p.amount && !u) continue;
+    if (MEASURE_UNITS.has(u)) continue;                                  // cooking measure → hide
+    if (!u || SIZE_WORDS.has(u)) { if (p.amount) out.push(p.amount); continue; } // plain count
+    out.push([p.amount, p.unit].filter(Boolean).join(' '));              // cans, cloves, lbs, oz…
+  }
+  return out.join(' + ');
+}
+
 // Merge one ingredient into a core-keyed map
 function mergeOne(map, ing, recipeTitle) {
   for (const piece of splitCompound(ing)) {
@@ -103,13 +122,18 @@ function mergeOne(map, ing, recipeTitle) {
     let unit = piece.unit || null;
     // If the item contains a form word ("garlic cloves") and there's no unit,
     // promote the form word to the unit so amounts sum with "2 clove garlic"
+    let displayName = piece.item;
     if (!unit) {
       const formWord = singularizeWords(normItem(piece.item)).split(' ').find(w => FORMS.has(w));
-      if (formWord) unit = formWord;
+      if (formWord) {
+        unit = formWord;
+        // Strip the form word from the display name: "garlic cloves" -> "garlic"
+        displayName = piece.item.replace(new RegExp(`\\b${formWord}s?\\b`, 'i'), '').replace(/\s+/g, ' ').trim() || piece.item;
+      }
     }
     if (!map.has(key)) {
       map.set(key, {
-        item: piece.item,
+        item: displayName,
         parts: [{ amount: piece.amount || '', unit }],
         recipes: new Set(recipeTitle ? [recipeTitle] : []),
         category: categorize(piece.item),
@@ -118,7 +142,7 @@ function mergeOne(map, ing, recipeTitle) {
     }
     const existing = map.get(key);
     // Prefer the shortest display name (closest to the core product)
-    if (piece.item.length < existing.item.length) existing.item = piece.item;
+    if (displayName.length < existing.item.length) existing.item = displayName;
     if (recipeTitle) existing.recipes.add(recipeTitle);
     const part = existing.parts.find(p => normUnit(p.unit) === normUnit(unit));
     if (part) {
