@@ -1,27 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { parseAmount, formatAmount, normUnit, normItem, normKey, categorize, CAT_ORDER, CAT_ICON, matchesStaple } from '../lib/grocery';
-
-// ── Merge ingredients across recipes ──────────────────────────────
-function buildShoppingList(recipes) {
-  const map = new Map();
-  for (const recipe of recipes) {
-    for (const ing of (recipe.ingredients || [])) {
-      if (!ing.item) continue;
-      const key = normKey(ing.item, ing.unit);
-      if (map.has(key)) {
-        const existing = map.get(key);
-        const a = parseAmount(existing.amount);
-        const b = parseAmount(ing.amount);
-        if (a !== null && b !== null) existing.amount = formatAmount(a + b);
-        else if (ing.amount && !existing.amount) existing.amount = ing.amount;
-        existing.recipes.add(recipe.title);
-      } else {
-        map.set(key, { amount: ing.amount || '', unit: ing.unit || null, item: ing.item, recipes: new Set([recipe.title]), category: categorize(ing.item) });
-      }
-    }
-  }
-  return [...map.values()];
-}
+import { buildShoppingList, amountText, coreItem, CAT_ORDER, CAT_ICON, matchesStaple } from '../lib/grocery';
 
 export default function ShoppingListModal({ recipes, onClose, onSaveToGroceries, staples }) {
   const items = useMemo(() => buildShoppingList(recipes), [recipes]);
@@ -34,7 +12,7 @@ export default function ShoppingListModal({ recipes, onClose, onSaveToGroceries,
   // Auto-check staples — runs whenever items or staples change (staples load async from Firebase)
   useEffect(() => {
     if (!staples?.length) return;
-    const stapleKeys = items.filter(it => matchesStaple(it.item, staples)).map(it => `${it.item}|${it.unit||''}`);
+    const stapleKeys = items.filter(it => matchesStaple(it.item, staples)).map(it => coreItem(it.item));
     if (!stapleKeys.length) return;
     setChecked(prev => {
       const next = new Set(prev);
@@ -61,7 +39,7 @@ export default function ShoppingListModal({ recipes, onClose, onSaveToGroceries,
   }, [items]);
 
   // Key by item name so check state is stable across reopens
-  const itemKey = (it) => `${it.item}|${it.unit||''}`;
+  const itemKey = (it) => coreItem(it.item);
   const toggle = (it) => setChecked(prev => {
     const k = itemKey(it);
     const n = new Set(prev);
@@ -77,7 +55,7 @@ export default function ShoppingListModal({ recipes, onClose, onSaveToGroceries,
       const unchecked = list.filter(it => !checked.has(itemKey(it)));
       if (!unchecked.length) continue;
       lines.push(`${cat.toUpperCase()}`);
-      unchecked.forEach(it => lines.push(`- ${[it.amount, it.unit, it.item].filter(Boolean).join(' ')}`));
+      unchecked.forEach(it => lines.push(`- ${[amountText(it), it.item].filter(Boolean).join(' ')}`));
       lines.push('');
     }
     navigator.clipboard.writeText(lines.join('\n').trim());
@@ -90,7 +68,7 @@ export default function ShoppingListModal({ recipes, onClose, onSaveToGroceries,
     const lines = [];
     for (const [, list] of grouped) {
       list.filter(it => !checked.has(itemKey(it)))
-        .forEach(it => lines.push([it.amount, it.unit, it.item].filter(Boolean).join(' ')));
+        .forEach(it => lines.push([amountText(it), it.item].filter(Boolean).join(' ')));
     }
     navigator.clipboard.writeText(lines.join('\n'));
     setCopiedPlain(true);
@@ -122,7 +100,7 @@ export default function ShoppingListModal({ recipes, onClose, onSaveToGroceries,
                   <input type="checkbox" checked={isChecked} onChange={() => toggle(it)}
                     style={{ marginTop: 2, accentColor: 'var(--accent)', width: 15, height: 15, flexShrink: 0 }} />
                   <span style={{ fontSize: 13, lineHeight: 1.45, textDecoration: isChecked ? 'line-through' : 'none' }}>
-                    <strong style={{ color: 'var(--accent)' }}>{[it.amount, it.unit].filter(Boolean).join(' ')}</strong>
+                    <strong style={{ color: 'var(--accent)' }}>{amountText(it)}</strong>
                     {' '}{it.item}
                     {matchesStaple(it.item, staples) && <span style={{ fontSize: 9, fontWeight: 600, color: '#7A3A18', background: 'var(--accent-light)', borderRadius: 20, padding: '1px 7px', marginLeft: 6, verticalAlign: 'middle' }}>staple</span>}
                     {it.recipes.size > 1 && <span style={{ fontSize: 10, color: 'var(--text-muted)', display: 'block', marginTop: 1 }}>used in {it.recipes.size} recipes</span>}
