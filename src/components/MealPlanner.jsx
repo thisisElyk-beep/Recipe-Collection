@@ -199,10 +199,12 @@ export default function MealPlanner({ recipes, plan, onUpdatePlan, onClose, onOp
                             <div key={r.id} draggable
                               onDragStart={() => { window.__draggedRecipeId = r.id; window.__dragSource = { day, slot }; }}
                               onClick={() => onOpenRecipe(r)}
-                              style={{ position:'relative', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:7, overflow:'hidden', cursor:'grab', flex:1, display:'flex', flexDirection:'column', minHeight:78 }}>
-                              {r.image_url && <img src={r.image_url} alt="" style={{ width:'100%', height:56, objectFit:'cover', display:'block', flexShrink:0 }} onError={e => e.target.style.display='none'} />}
-                              <div style={{ padding:'6px 8px', fontSize:11, fontWeight:500, lineHeight:1.3, color:'var(--text)', flex:1, display:'flex', alignItems:'center' }}>{r.title}</div>
-                              <button onClick={e => { e.stopPropagation(); removeFromSlot(day, slot, r.id); }} style={{ position:'absolute', top:3, right:3, width:16, height:16, borderRadius:'50%', background:'rgba(0,0,0,0.55)', border:'none', color:'white', fontSize:10, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1 }}>×</button>
+                              style={{ position:'relative', borderRadius:7, overflow:'hidden', cursor:'grab', flex:1, minHeight:84, border:'1px solid var(--border)', background:'var(--surface)' }}>
+                              {/* Image fills the whole card */}
+                              {r.image_url && <img src={r.image_url} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', display:'block' }} onError={e => e.target.style.display='none'} />}
+                              {/* Title sits on a gradient over the bottom of the image */}
+                              <div style={{ position:'absolute', left:0, right:0, bottom:0, padding:'14px 8px 6px', fontSize:11, fontWeight:600, lineHeight:1.3, color: r.image_url ? 'white' : 'var(--text)', background: r.image_url ? 'linear-gradient(transparent, rgba(0,0,0,0.72))' : 'transparent', textShadow: r.image_url ? '0 1px 2px rgba(0,0,0,0.5)' : 'none' }}>{r.title}</div>
+                              <button onClick={e => { e.stopPropagation(); removeFromSlot(day, slot, r.id); }} style={{ position:'absolute', top:3, right:3, width:16, height:16, borderRadius:'50%', background:'rgba(0,0,0,0.55)', border:'none', color:'white', fontSize:10, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1, zIndex:2 }}>×</button>
                             </div>
                           ))}
                           <button onClick={() => { setPicker({ day, slot }); setPickerSearch(''); }} style={{ marginTop:'auto', padding:'3px', border:'none', borderRadius:5, background:'transparent', color:'var(--text-muted)', fontSize:10, cursor:'pointer', fontFamily:'var(--font-body)', opacity:0.6 }}>+</button>

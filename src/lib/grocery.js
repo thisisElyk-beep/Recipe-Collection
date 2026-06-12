@@ -41,7 +41,7 @@ export function singularizeWords(s) {
 }
 
 // Words that can precede a staple/item without making it a different product
-const DESCRIPTORS = new Set(['fresh','dried','ground','large','small','medium','baby','extra','virgin','pure','organic','whole','raw','plain','light','dark','unsalted','salted','sweetened','unsweetened','reduced','fat','low','sodium','gluten','free','all','purpose','style','packed','granulated','melted','softened','cold','warm','hot','room','temperature','shredded','grated','chopped','sliced','diced','minced','crumbled','cubed','torn','beaten','crushed','divided','refrigerated','thawed','drained','rinsed']);
+const DESCRIPTORS = new Set(['fresh','dried','ground','large','small','medium','baby','extra','virgin','pure','organic','whole','raw','plain','light','dark','unsalted','salted','sweetened','unsweetened','reduced','fat','low','sodium','gluten','free','all','purpose','style','packed','granulated','melted','softened','cold','warm','hot','room','temperature','shredded','grated','chopped','sliced','diced','minced','crumbled','cubed','torn','beaten','crushed','divided','refrigerated','thawed','drained','rinsed','additional','optional','more','hard','soft','boiled','cooked','toasted','roasted']);
 // Forms an item can come in without being a different product
 const FORMS = new Set(['clove','head','bulb','leaf','sprig','stalk','stick','slice','piece','cube','pat']);
 
@@ -83,8 +83,8 @@ export function coreItem(item) {
 // Split compound no-amount items: "salt and black pepper" -> two items.
 // Only when there is no amount, so "2 cups carrots and celery" stays intact.
 export function splitCompound(ing) {
-  if (ing.amount || !ing.item || !/\s+and\s+/i.test(ing.item)) return [ing];
-  return ing.item.split(/\s+and\s+/i).map(part => ({ ...ing, item: part.trim() })).filter(p => p.item);
+  if (ing.amount || !ing.item || !/,|\s+and\s+/i.test(ing.item)) return [ing];
+  return ing.item.split(/,|\s+and\s+/i).map(part => ({ ...ing, item: part.trim() })).filter(p => p.item);
 }
 
 // Amount display for a merged item with multiple unit parts
