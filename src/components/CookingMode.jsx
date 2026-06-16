@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { decodeEntities } from '../lib/scraper';
 
 // ── Wake Lock ────────────────────────────────────────────────────
 async function requestWakeLock() {
@@ -15,7 +16,7 @@ function parseStepTime(instruction) {
   const hourMatch = text.match(/(\d+)\s*hour/);
   if (hourMatch) total += parseInt(hourMatch[1]) * 3600;
   const minMatch = text.match(/(\d+)(?:\s*(?:to|-)\s*(\d+))?\s*min/);
-  if (minMatch) total += (minMatch[2] ? parseInt(minMatch[2]) : parseInt(minMatch[1])) * 60;
+  if (minMatch) total += parseInt(minMatch[1]) * 60; // use LOW end of range
   const secMatch = text.match(/(\d+)\s*sec/);
   if (secMatch) total += parseInt(secMatch[1]);
   return total > 0 ? total : null;
@@ -89,6 +90,7 @@ function matchCommand(transcript) {
 export default function CookingMode({ recipe, scale, onClose }) {
   const [step, setStep] = useState(0);
   const [voiceOn, setVoiceOn] = useState(false);
+  const [textSize, setTextSize] = useState(1); // 0=small 1=medium 2=large
   const [voiceStatus, setVoiceStatus] = useState('');
   const [lastHeard, setLastHeard] = useState('');
   const [timeRemaining, setTimeRemaining] = useState(null);
@@ -190,6 +192,8 @@ export default function CookingMode({ recipe, scale, onClose }) {
           setTimeRemaining(stepTimeRef.current); // use ref, not stale closure
         }
         if (cmd === 'exit') onClose();
+        if (cmd === 'text-up') setTextSize(s => Math.min(s + 1, 2));
+        if (cmd === 'text-down') setTextSize(s => Math.max(s - 1, 0));
       }
     };
 
@@ -200,7 +204,16 @@ export default function CookingMode({ recipe, scale, onClose }) {
     };
 
     rec.onend = () => {
-      if (rec._shouldRun) { try { rec.start(); } catch {} }
+      if (!rec._shouldRun) return;
+      // Speech engines self-terminate periodically. Restarting immediately can
+      // throw InvalidStateError if the engine hasn't fully stopped — retry with
+      // a delay, and once more if the first retry also fails.
+      setTimeout(() => {
+        if (!rec._shouldRun) return;
+        try { rec.start(); } catch {
+          setTimeout(() => { if (rec._shouldRun) { try { rec.start(); } catch {} } }, 600);
+        }
+      }, 250);
     };
 
     rec._shouldRun = false;
@@ -273,6 +286,14 @@ export default function CookingMode({ recipe, scale, onClose }) {
           </span>
           {voiceStatus === 'heard' ? `"${lastHeard}"` : voiceStatus === 'error' ? 'Mic error' : voiceOn ? 'Listening...' : 'Voice Control'}
         </button>
+        <div style={{ display: 'flex', gap: 2, background: '#F6F2EB', borderRadius: 7, padding: 3, flexShrink: 0 }}>
+          {['S','M','L'].map((lbl,i) => (
+            <button key={lbl} onClick={() => setTextSize(i)}
+              style={{ padding: '4px 9px', borderRadius: 5, border: 'none', fontSize: 11, fontWeight: textSize===i?700:400, fontFamily:'inherit', cursor:'pointer', background: textSize===i?'white':'transparent', color: textSize===i?'#2A2520':'#8A7F75', transition:'all 0.15s' }}>
+              {lbl}
+            </button>
+          ))}
+        </div>
         <button onClick={onClose} style={{ background: '#F6F2EB', border: '1px solid #E8E2D8', borderRadius: 7, color: '#8A7F75', fontSize: 12, fontFamily: 'inherit', padding: '6px 13px', cursor: 'pointer', flexShrink: 0 }}>Exit</button>
       </div>
 
@@ -280,7 +301,7 @@ export default function CookingMode({ recipe, scale, onClose }) {
       {voiceOn && (
         <div style={{ background: '#FDF8F4', borderBottom: '1px solid #F0E0D4', padding: '7px 24px', display: 'flex', alignItems: 'center', gap: 12, fontSize: 11, color: '#7A3A18', flexShrink: 0, flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 600 }}>Voice:</span>
-          {['"Next"', '"Back"', '"Scroll Down"', '"Scroll Up"', '"Start"', '"Pause"', '"Reset"', '"Exit"'].map(cmd => (
+          {['"Next"', '"Back"', '"Scroll Down"', '"Scroll Up"', '"Start"', '"Pause"', '"Reset"', '"Larger"', '"Smaller"', '"Exit"'].map(cmd => (
             <span key={cmd} style={{ background: '#F0E0D4', padding: '2px 8px', borderRadius: 20, fontWeight: 500 }}>{cmd}</span>
           ))}
         </div>
@@ -304,7 +325,7 @@ export default function CookingMode({ recipe, scale, onClose }) {
                   <div style={{ fontSize: 20, fontWeight: 700, color: '#C4622D', letterSpacing: '-0.02em', lineHeight: 1, marginBottom: 4 }}>
                     {[ing.amount, ing.unit].filter(Boolean).join(' ') || '-'}
                   </div>
-                  <div style={{ fontSize: 15, fontWeight: 500, color: '#2A2520', lineHeight: 1.3 }}>{ing.item}</div>
+                  <div style={{ fontSize: 15, fontWeight: 500, color: '#2A2520', lineHeight: 1.3 }}>{decodeEntities(ing.item)}</div>
                   {ing.note && <div style={{ fontSize: 12, color: '#8A7F75', marginTop: 3, fontStyle: 'italic' }}>{ing.note}</div>}
                 </div>
               ))}
@@ -324,8 +345,8 @@ export default function CookingMode({ recipe, scale, onClose }) {
             Step {step + 1} <span style={{ color: '#C8C0B4', fontWeight: 400 }}>/ {total}</span>
           </div>
 
-          <p style={{ fontSize: 'clamp(22px, 3vw, 34px)', fontWeight: 400, lineHeight: 1.6, color: '#2A2520', maxWidth: 700, marginBottom: stepTime ? 32 : 48, letterSpacing: '-0.01em' }}>
-            {cur?.instruction}
+          <p style={{ fontSize: ['18px','clamp(22px,3vw,32px)','clamp(28px,4vw,44px)'][textSize], fontWeight: 400, lineHeight: 1.6, color: '#2A2520', maxWidth: 700, marginBottom: stepTime ? 32 : 48, letterSpacing: '-0.01em', transition: 'font-size 0.2s' }}>
+            {decodeEntities(cur?.instruction || '')}
           </p>
 
           {/* Timer */}
