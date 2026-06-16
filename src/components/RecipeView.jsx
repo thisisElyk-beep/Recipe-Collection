@@ -56,11 +56,13 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
   const [draft, setDraft] = useState(null);
   const [saving, setSaving] = useState(false);
   const [addedToGroceries, setAddedToGroceries] = useState(false);
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesDraft, setNotesDraft] = useState('');
 
   const {
     id, title, description, image_url, prep_time, cook_time, total_time,
     servings, ingredients = [], steps = [], tags = [], source_url, favorited,
-    collection: col
+    notes, collection: col
   } = recipe;
 
   const handleDelete = () => {
@@ -88,6 +90,7 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
       steps: steps.map(s => ({ instruction: s.instruction||'' })),
       tags: [...(tags||[])],
       source_url: source_url || '',
+      notes: notes || '',
     });
     setEditMode(true);
     setScale(1);
@@ -108,6 +111,7 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
       steps: draft.steps.filter(s => s.instruction.trim()).map((s, idx) => ({ number: idx + 1, instruction: s.instruction.trim() })),
       tags: draft.tags,
       source_url: draft.source_url.trim() || '',
+      notes: draft.notes.trim() || '',
     };
     await onUpdate(id, cleaned);
     setSaving(false);
@@ -127,6 +131,9 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
   const removeStep = (i) => setDraft(d => ({ ...d, steps: d.steps.filter((_, idx) => idx !== i) }));
   const [newTag, setNewTag] = useState('');
   const addTag = () => { const t = newTag.trim().toLowerCase(); if (t && !draft.tags.includes(t)) setField('tags', [...draft.tags, t]); setNewTag(''); };
+
+  const startEditNotes = () => { setNotesDraft(notes || ''); setEditingNotes(true); };
+  const saveNotes = () => { onUpdate(id, { notes: notesDraft.trim() || '' }); setEditingNotes(false); };
 
   const handleImageSave = () => {
     const url = newImageUrl.trim();
@@ -281,6 +288,10 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
                 </div>
 
                 <div>
+                  <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', marginBottom: 5 }}>Notes</label>
+                  <textarea style={{ ...inp, width: '100%', resize: 'vertical', minHeight: 70, lineHeight: 1.5 }} value={draft.notes} onChange={e => setField('notes', e.target.value)} placeholder="Adjustments, ideas, what to try next time…" />
+                </div>
+                <div>
                   <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', marginBottom: 5 }}>Source URL</label>
                   <input style={{ ...inp, width: '100%', fontSize: 12 }} value={draft.source_url} onChange={e => setField('source_url', e.target.value)} />
                 </div>
@@ -328,7 +339,39 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
                   </div>
                 </div>
 
-                {source_url && <div style={{ marginTop: 48, paddingTop: 20, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--text-muted)' }}>Source: <a href={source_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>{source_url}</a></div>}
+                {/* Notes section */}
+                <div style={{ marginTop: 44, paddingTop: 24, borderTop: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500 }}>Notes</div>
+                    {!editingNotes && (
+                      <button onClick={startEditNotes} style={{ fontSize: 12, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 500, padding: 0 }}>
+                        {notes ? '✎ Edit' : '+ Add a note'}
+                      </button>
+                    )}
+                  </div>
+                  {editingNotes ? (
+                    <div>
+                      <textarea autoFocus value={notesDraft} onChange={e => setNotesDraft(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Escape') setEditingNotes(false); }}
+                        placeholder="Adjustments, ideas, what to try next time…"
+                        style={{ width: '100%', minHeight: 100, padding: '12px 14px', border: '1px solid var(--border)', borderRadius: 9, fontSize: 14, fontFamily: 'var(--font-body)', lineHeight: 1.6, resize: 'vertical', outline: 'none', background: 'var(--surface)', boxSizing: 'border-box', color: 'var(--text)' }} />
+                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                        <button onClick={saveNotes} style={{ padding: '7px 16px', background: 'var(--accent)', color: 'white', border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-body)', cursor: 'pointer' }}>Save</button>
+                        <button onClick={() => setEditingNotes(false)} style={{ padding: '7px 12px', background: 'var(--tag-bg)', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13, fontFamily: 'var(--font-body)', cursor: 'pointer' }}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : notes ? (
+                    <div onClick={startEditNotes} style={{ background: 'var(--accent-light)', border: '1px solid #E8C4A8', borderRadius: 9, padding: '14px 16px', fontSize: 14, lineHeight: 1.65, color: '#5A3520', whiteSpace: 'pre-wrap', cursor: 'pointer' }}>
+                      {notes}
+                    </div>
+                  ) : (
+                    <div onClick={startEditNotes} style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic', cursor: 'pointer' }}>
+                      No notes yet. Click to add quick adjustments or ideas for next time.
+                    </div>
+                  )}
+                </div>
+
+                {source_url && <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--text-muted)' }}>Source: <a href={source_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>{source_url}</a></div>}
               </>
             )}
           </div>
