@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { decodeEntities } from '../lib/scraper';
 
 // ── Wake Lock ────────────────────────────────────────────────────
@@ -12,8 +12,17 @@ async function requestWakeLock() {
 // ── Timer parsing ────────────────────────────────────────────────
 function parseStepTime(instruction) {
   const text = instruction.toLowerCase();
+
+  // Cross-unit range like "50 minutes to 1 hour" or "45 min - 1 hr": this is a
+  // single range, not two cumulative durations. Use the LOW end (the minutes).
+  const crossRange = text.match(/(\d+)\s*min(?:ute)?s?\s*(?:to|-)\s*(\d+)\s*h(?:ou)?rs?/);
+  if (crossRange) return parseInt(crossRange[1]) * 60;
+  // Also "1 to 2 hours" style — low end in hours
+  const hourRange = text.match(/(\d+)\s*(?:to|-)\s*(\d+)\s*h(?:ou)?rs?/);
+  if (hourRange) return parseInt(hourRange[1]) * 3600;
+
   let total = 0;
-  const hourMatch = text.match(/(\d+)\s*hour/);
+  const hourMatch = text.match(/(\d+)\s*h(?:ou)?rs?/);
   if (hourMatch) total += parseInt(hourMatch[1]) * 3600;
   const minMatch = text.match(/(\d+)(?:\s*(?:to|-)\s*(\d+))?\s*min/);
   if (minMatch) total += parseInt(minMatch[1]) * 60; // use LOW end of range
@@ -55,20 +64,69 @@ function playDing() {
 // ── Ingredient matching ──────────────────────────────────────────
 const MODIFIERS = new Set(['and','the','for','with','from','into','onto','over','until','about','using','all','purpose','free','fresh','dried','large','small','medium','reduced','fat','low','sodium','plus','extra','virgin','packed','coarsely','finely','thinly','divided','softened','melted','frozen','thawed','drained','rinsed','beaten','room','temperature','boneless','skinless','lean','whole','plain','unsalted','salted','sweetened','unsweetened','part','skim','fully','cooked','minced','chopped','sliced','grated','peeled','diced','shredded','crumbled','crushed','roughly','lightly','strained']);
 
-function getRelevantIngredients(ingredients, instruction) {
-  if (!instruction) return [];
-  const text = instruction.toLowerCase();
-  return ingredients.filter(ing => {
-    if (!ing.item) return false;
-    const item = ing.item.toLowerCase().replace(/[^a-z\s]/g, '').trim();
-    if (text.includes(item)) return true;
-    const words = item.split(/\s+/).filter(w => w.length > 2 && !MODIFIERS.has(w));
-    if (!words.length) return false;
-    if (words.length === 1) return text.includes(words[0]);
-    for (let i = 0; i < words.length - 1; i++) {
-      if (text.includes(`${words[i]} ${words[i+1]}`)) return true;
-    }
-    return text.includes(words[words.length - 1]);
+// Does this step's text mention this ingredient at all?
+function stepMentionsIngredient(text, ing) {
+  if (!ing.item) return false;
+  const item = ing.item.toLowerCase().replace(/[^a-z\s]/g, '').trim();
+  if (text.includes(item)) return true;
+  const words = item.split(/\s+/).filter(w => w.length > 2 && !MODIFIERS.has(w));
+  if (!words.length) return false;
+  if (words.length === 1) return text.includes(words[0]);
+  for (let i = 0; i < words.length - 1; i++) {
+    if (text.includes(`${words[i]} ${words[i+1]}`)) return true;
+  }
+  return text.includes(words[words.length - 1]);
+}
+
+// Find the significant words of an ingredient that we look for in step text
+function ingredientKeywords(ing) {
+  const item = (ing.item || '').toLowerCase().replace(/[^a-z\s]/g, '').trim();
+  const words = item.split(/\s+/).filter(w => w.length > 2 && !MODIFIERS.has(w));
+  return words.length ? words : [item];
+}
+
+// Additive cues: a later step is *adding more* of an ingredient (not just
+// referencing it) if an amount/number or an additive word sits near its name.
+// Strong cues that THIS ingredient is being added again (not just referenced
+// as a destination). "Add X to the bananas" — bananas are the destination, so
+// bare "add" is excluded; we require an explicit re-add quantity or word.
+const READD_WORDS = ['remaining','rest of','reserved','another','more of','the other'];
+function stepAddsIngredient(text, ing) {
+  const kws = ingredientKeywords(ing);
+  // Locate the ingredient mention (use the most specific keyword)
+  let idx = -1;
+  for (const kw of kws) { const i = text.indexOf(kw); if (i !== -1) { idx = i; break; } }
+  if (idx === -1) return false;
+  // Tight window immediately BEFORE the name — a re-add reads "remaining 3 tbsp oil"
+  const before = text.slice(Math.max(0, idx - 28), idx);
+  // A number directly before the ingredient name implies a fresh measured amount
+  if (/\d\s*(tsp|tbsp|cup|oz|lb|g|ml|clove|cups?|tablespoons?|teaspoons?)?\s*$/.test(before)) return true;
+  // Explicit re-add words near the name
+  return READD_WORDS.some(w => before.includes(w));
+}
+
+// Compute, for each step index, which ingredients to SHOW.
+// Rule: an ingredient shows on the FIRST step that mentions it (its introduction),
+// and again on any LATER step that *adds more* (amount/additive cue present).
+// Steps that merely reference an already-introduced ingredient don't repeat it.
+function computeStepIngredients(steps, ingredients) {
+  const introduced = new Set(); // indices of ingredients already shown
+  return steps.map(step => {
+    const text = (step.instruction || '').toLowerCase();
+    const show = [];
+    ingredients.forEach((ing, idx) => {
+      if (!stepMentionsIngredient(text, ing)) return;
+      if (!introduced.has(idx)) {
+        // First appearance — introduce it here
+        introduced.add(idx);
+        show.push(ing);
+      } else if (stepAddsIngredient(text, ing)) {
+        // Already introduced, but this step adds more — show again
+        show.push(ing);
+      }
+      // else: merely referenced — skip
+    });
+    return show;
   });
 }
 
@@ -102,7 +160,8 @@ export default function CookingMode({ recipe, scale, onClose }) {
   const total = steps.length;
   const cur = steps[step];
   const stepTime = cur ? parseStepTime(cur.instruction) : null;
-  const relevant = getRelevantIngredients(ingredients, cur?.instruction);
+  const stepIngredients = useMemo(() => computeStepIngredients(steps, ingredients), [steps, ingredients]);
+  const relevant = stepIngredients[step] || [];
   const pct = ((step + 1) / total) * 100;
 
   // Refs — declared AFTER derived values so no temporal dead zone
