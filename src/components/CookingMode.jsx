@@ -151,9 +151,9 @@ export default function CookingMode({ recipe, scale, onClose }) {
   const [textSize, setTextSize] = useState(1); // 0=small 1=medium 2=large
   const [voiceStatus, setVoiceStatus] = useState('');
   const [lastHeard, setLastHeard] = useState('');
-  const [timeRemaining, setTimeRemaining] = useState(null);
-  const [timerRunning, setTimerRunning] = useState(false);
-  const [timerDone, setTimerDone] = useState(false);
+  // Per-step timers: { [stepIndex]: { remaining, running, done } }
+  // Keyed by step so a running timer keeps ticking while you view other steps.
+  const [timers, setTimers] = useState({});
 
   const steps = recipe.steps || [];
   const ingredients = recipe.ingredients || [];
@@ -171,10 +171,26 @@ export default function CookingMode({ recipe, scale, onClose }) {
   const timerRef = useRef(null);
   const stepTimeRef = useRef(stepTime);   // safe here, stepTime is already computed above
   const voiceOnRef = useRef(voiceOn);
+  const stepRef = useRef(step);
+  stepRef.current = step;
 
   // Keep refs current every render
   stepTimeRef.current = stepTime;
   voiceOnRef.current = voiceOn;
+
+  // Current step's timer view (defaults to fresh from stepTime)
+  const curTimer = timers[step] || { remaining: stepTime, running: false, done: false };
+  const timeRemaining = curTimer.remaining ?? stepTime;
+  const timerRunning = curTimer.running;
+  const timerDone = curTimer.done;
+
+  // Timer control helpers operate on a given step index
+  const startTimer = (idx, secs) => setTimers(prev => {
+    const t = prev[idx] || { remaining: secs, running: false, done: false };
+    if (t.done) return prev;
+    return { ...prev, [idx]: { ...t, remaining: t.remaining ?? secs, running: !t.running } };
+  });
+  const resetTimer = (idx, secs) => setTimers(prev => ({ ...prev, [idx]: { remaining: secs, running: false, done: false } }));
 
   // Wake lock
   useEffect(() => {
@@ -193,32 +209,31 @@ export default function CookingMode({ recipe, scale, onClose }) {
     return () => window.removeEventListener('keydown', handle);
   }, [total, onClose]);
 
-  // Reset timer when step changes
+  // Single global tick — decrements every running timer, regardless of which
+  // step is currently shown. Timers persist across step navigation.
   useEffect(() => {
-    clearInterval(timerRef.current);
-    setTimerRunning(false);
-    setTimerDone(false);
-    setTimeRemaining(stepTime);
-  }, [step]);
-
-  // Timer tick
-  useEffect(() => {
-    if (!timerRunning) return;
+    const anyRunning = Object.values(timers).some(t => t.running);
+    if (!anyRunning) return;
     timerRef.current = setInterval(() => {
-      setTimeRemaining(t => {
-        if (t <= 1) {
-          clearInterval(timerRef.current);
-          setTimerRunning(false);
-          setTimerDone(true);
-          playDing();
-          if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
-          return 0;
+      setTimers(prev => {
+        let changed = false;
+        const next = { ...prev };
+        for (const [idx, t] of Object.entries(prev)) {
+          if (!t.running) continue;
+          changed = true;
+          if (t.remaining <= 1) {
+            next[idx] = { ...t, remaining: 0, running: false, done: true };
+            playDing();
+            if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+          } else {
+            next[idx] = { ...t, remaining: t.remaining - 1 };
+          }
         }
-        return t - 1;
+        return changed ? next : prev;
       });
     }, 1000);
     return () => clearInterval(timerRef.current);
-  }, [timerRunning]);
+  }, [timers]);
 
   const scrollIngredients = dir => {
     const p = ingredientsPanelRef.current;
@@ -243,12 +258,11 @@ export default function CookingMode({ recipe, scale, onClose }) {
         if (cmd === 'prev') setStep(s => Math.max(s - 1, 0));
         if (cmd === 'scroll-down') scrollIngredients('down');
         if (cmd === 'scroll-up') scrollIngredients('up');
-        if (cmd === 'timer-start') setTimerRunning(true);
-        if (cmd === 'timer-pause') setTimerRunning(false);
+        if (cmd === 'timer-start') { const i = stepRef.current; const secs = stepTimeRef.current; if (secs != null) setTimers(prev => { const t = prev[i] || { remaining: secs, running: false, done: false }; if (t.done) return prev; return { ...prev, [i]: { ...t, remaining: t.remaining ?? secs, running: true } }; }); }
+        if (cmd === 'timer-pause') { const i = stepRef.current; setTimers(prev => prev[i] ? { ...prev, [i]: { ...prev[i], running: false } } : prev); }
         if (cmd === 'timer-reset') {
-          setTimerRunning(false);
-          setTimerDone(false);
-          setTimeRemaining(stepTimeRef.current); // use ref, not stale closure
+          const i = stepRef.current; const secs = stepTimeRef.current;
+          setTimers(prev => ({ ...prev, [i]: { remaining: secs, running: false, done: false } }));
         }
         if (cmd === 'exit') onClose();
         if (cmd === 'text-up') setTextSize(s => Math.min(s + 1, 2));
@@ -423,11 +437,11 @@ export default function CookingMode({ recipe, scale, onClose }) {
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 {!timerDone && (
-                  <TimerBtn onClick={() => setTimerRunning(v => !v)} active={timerRunning}>
+                  <TimerBtn onClick={() => startTimer(step, stepTime)} active={timerRunning}>
                     {timerRunning ? '⏸ Pause' : '▶ Start'}
                   </TimerBtn>
                 )}
-                <TimerBtn onClick={() => { setTimerRunning(false); setTimerDone(false); setTimeRemaining(stepTime); }}>
+                <TimerBtn onClick={() => resetTimer(step, stepTime)}>
                   ↺ Reset
                 </TimerBtn>
               </div>
@@ -436,9 +450,13 @@ export default function CookingMode({ recipe, scale, onClose }) {
 
           {/* Step dots */}
           <div style={{ display: 'flex', gap: 7, marginBottom: 32, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {steps.map((_, i) => (
-              <button key={i} onClick={() => setStep(i)} style={{ width: i === step ? 28 : 8, height: 8, borderRadius: 4, border: 'none', cursor: 'pointer', transition: 'all 0.2s', background: i === step ? '#C4622D' : i < step ? '#E8C4A8' : '#D8D0C4', padding: 0 }} />
-            ))}
+            {steps.map((_, i) => {
+              const t = timers[i];
+              const dotColor = i === step ? '#C4622D' : i < step ? '#E8C4A8' : '#D8D0C4';
+              return (
+                <button key={i} onClick={() => setStep(i)} title={t?.running ? 'Timer running' : t?.done ? 'Timer done' : undefined} style={{ position: 'relative', width: i === step ? 28 : 8, height: 8, borderRadius: 4, border: 'none', cursor: 'pointer', transition: 'all 0.2s', background: t?.running ? '#C4622D' : t?.done ? '#2A5C3A' : dotColor, padding: 0 }} />
+              );
+            })}
           </div>
 
           <div style={{ display: 'flex', gap: 10 }}>
