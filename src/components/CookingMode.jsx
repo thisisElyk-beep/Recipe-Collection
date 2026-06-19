@@ -470,7 +470,46 @@ export default function CookingMode({ recipe, scale, onClose }) {
         </div>
       </div>
 
-      <style>{`@keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 0.8; } 100% { transform: scale(2); opacity: 0; } }`}</style>
+      {/* Floating timer chip — visible when a timer is active on a step you're not viewing */}
+      {(() => {
+        const offStep = Object.entries(timers)
+          .map(([idx, t]) => ({ idx: parseInt(idx), ...t }))
+          .filter(t => t.idx !== step && (t.running || t.done))
+          .sort((a, b) => (a.done === b.done ? a.remaining - b.remaining : a.done ? 1 : -1)); // running first, then soonest
+        if (!offStep.length) return null;
+        const t = offStep[0];
+        const more = offStep.length - 1;
+        return (
+          <div
+            onClick={() => setStep(t.idx)}
+            title="Jump to this step"
+            style={{
+              position: 'fixed', bottom: 20, right: 20, zIndex: 250,
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 16px', borderRadius: 12, cursor: 'pointer',
+              fontFamily: "'Outfit', system-ui, sans-serif",
+              background: t.done ? '#E8F5EC' : '#fff',
+              border: `2px solid ${t.done ? '#A8D4B4' : '#E8C4A8'}`,
+              boxShadow: '0 4px 16px rgba(42,37,32,0.18)',
+              animation: t.done ? 'chip-pop 0.4s ease' : undefined,
+            }}>
+            <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 10, height: 10 }}>
+              {t.running && <span style={{ position: 'absolute', width: 20, height: 20, borderRadius: '50%', background: 'rgba(196,98,45,0.25)', animation: 'pulse-ring 1.5s ease-out infinite' }} />}
+              <span style={{ width: 9, height: 9, borderRadius: '50%', background: t.done ? '#2A5C3A' : '#C4622D' }} />
+            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: t.done ? '#2A5C3A' : '#8A7F75' }}>
+                Step {t.idx + 1}{t.done ? ' · Done' : ''}{more > 0 ? ` · +${more}` : ''}
+              </span>
+              <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', color: t.done ? '#2A5C3A' : '#C4622D' }}>
+                {t.done ? '✓ Ready' : fmtTime(t.remaining)}
+              </span>
+            </div>
+          </div>
+        );
+      })()}
+
+      <style>{`@keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 0.8; } 100% { transform: scale(2); opacity: 0; } } @keyframes chip-pop { 0% { transform: scale(0.85); } 60% { transform: scale(1.06); } 100% { transform: scale(1); } }`}</style>
     </div>
   );
 }
