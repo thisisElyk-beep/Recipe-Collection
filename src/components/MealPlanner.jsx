@@ -1,20 +1,36 @@
 import { useState, useMemo } from 'react';
 import ShoppingListModal from './ShoppingListModal';
+import { parseAmount, formatAmount } from '../lib/grocery';
 import GroceriesTab from './GroceriesTab';
 import PantryTab from './PantryTab';
 
-const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-const DAY_ABBR = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-const SLOTS = ['breakfast','lunch','dinner'];
-const SLOT_LABEL = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner' };
-const SLOT_ICON = { breakfast: '🍳', lunch: '🥪', dinner: '🍽' };
+export const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+export const DAY_ABBR = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+export const SLOTS = ['breakfast','lunch','dinner'];
+export const SLOT_LABEL = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner' };
+export const SLOT_ICON = { breakfast: '🍳', lunch: '🥪', dinner: '🍽' };
 
 // Normalize a day's plan — legacy arrays become { dinner: [...] }
-function daySlots(plan, day) {
+export function daySlots(plan, day) {
   const d = plan[day];
   if (!d) return { breakfast: [], lunch: [], dinner: [] };
   if (Array.isArray(d)) return { breakfast: [], lunch: [], dinner: d };
   return { breakfast: d.breakfast || [], lunch: d.lunch || [], dinner: d.dinner || [] };
+}
+
+// Scale an ingredient amount string by a multiplier, handling ranges
+function scaleAmount(amount, mult) {
+  if (!amount || mult === 1) return amount;
+  const rangeMatch = amount.toString().match(/^(.+?)\s*(-|to)\s*(.+)$/i);
+  if (rangeMatch) {
+    const n1 = parseAmount(rangeMatch[1]);
+    const n2 = parseAmount(rangeMatch[3]);
+    const sep = /to/i.test(rangeMatch[2]) ? ' to ' : '-';
+    if (n1 !== null && n2 !== null) return `${formatAmount(n1 * mult)}${sep}${formatAmount(n2 * mult)}`;
+  }
+  const n = parseAmount(amount);
+  if (n === null) return amount;
+  return formatAmount(n * mult);
 }
 
 // ── Meal type inference from tags ─────────────────────────────────
@@ -94,9 +110,20 @@ export default function MealPlanner({ recipes, plan, onUpdatePlan, onClose, onOp
   const toggleType = (t) => setCollapsedTypes(prev => { const n = new Set(prev); n.has(t) ? n.delete(t) : n.add(t); return n; });
 
   const plannedRecipes = useMemo(() => {
-    const ids = new Set();
-    DAYS.forEach(day => { const s = daySlots(plan, day); SLOTS.forEach(slot => s[slot].forEach(id => ids.add(id))); });
-    return [...ids].map(id => recipeById[id]).filter(Boolean);
+    // Count how many times each recipe appears across all slots this week
+    const counts = {};
+    DAYS.forEach(day => { const s = daySlots(plan, day); SLOTS.forEach(slot => s[slot].forEach(id => { counts[id] = (counts[id] || 0) + 1; })); });
+    // Scale each recipe's ingredient amounts by its occurrence count
+    return Object.entries(counts).map(([id, count]) => {
+      const r = recipeById[id];
+      if (!r) return null;
+      if (count === 1) return r;
+      return {
+        ...r,
+        title: `${r.title} (x${count})`,
+        ingredients: (r.ingredients || []).map(ing => ({ ...ing, amount: scaleAmount(ing.amount, count) })),
+      };
+    }).filter(Boolean);
   }, [plan, recipeById]);
 
   const saveToGroceries = (items, checkedKeys) => {

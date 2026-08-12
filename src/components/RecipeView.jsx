@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import CookingMode from './CookingMode';
+import { DAYS, DAY_ABBR, SLOTS, SLOT_LABEL, SLOT_ICON, daySlots } from './MealPlanner';
 import { decodeEntities } from '../lib/scraper';
 
 const UNICODE_FRACS = { '\u00bd':'1/2','\u00bc':'1/4','\u00be':'3/4','\u2153':'1/3','\u2154':'2/3','\u215b':'1/8','\u215c':'3/8','\u215d':'5/8','\u215e':'7/8' };
@@ -43,7 +44,7 @@ function scaleAmt(amount, scale) {
   return formatAmount(n * scale);
 }
 
-export default function RecipeView({ recipe, collections, onClose, onUpdate, onDelete, onAddToGroceries }) {
+export default function RecipeView({ recipe, collections, onClose, onUpdate, onDelete, onAddToGroceries, mealPlan, onUpdatePlan }) {
   const [imgError, setImgError] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [scale, setScale] = useState(1);
@@ -60,6 +61,19 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
   const [addedToGroceries, setAddedToGroceries] = useState(false);
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesDraft, setNotesDraft] = useState('');
+  const [showPlanPicker, setShowPlanPicker] = useState(false);
+  const [plannedDay, setPlannedDay] = useState(null); // day just added to, for confirmation flash
+
+  const addToPlanSlot = (day, slot) => {
+    const slots = daySlots(mealPlan || {}, day);
+    if (slots[slot].includes(id)) { setShowPlanPicker(false); return; }
+    onUpdatePlan({ ...(mealPlan || {}), [day]: { ...slots, [slot]: [...slots[slot], id] } });
+    setPlannedDay(`${day}-${slot}`);
+    setShowPlanPicker(false);
+    setTimeout(() => setPlannedDay(null), 2000);
+  };
+
+  const isInPlan = (day, slot) => daySlots(mealPlan || {}, day)[slot].includes(id);
 
   const {
     id, title, description, image_url, prep_time, cook_time, total_time,
@@ -215,6 +229,39 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
                   )}
                 </div>
                 <button onClick={() => setCookMode(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: 'var(--accent-light)', color: 'var(--accent)', border: '1px solid #E8C4A8', borderRadius: 8, fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-body)', cursor: 'pointer' }}>Cook Mode</button>
+                <div style={{ position: 'relative' }}>
+                  <button onClick={() => setShowPlanPicker(v => !v)}
+                    title="Add this recipe to the meal plan"
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', background: plannedDay ? '#E8F5EC' : 'var(--surface)', color: plannedDay ? '#2A5C3A' : 'var(--text-muted)', border: `1px solid ${plannedDay ? '#A8D4B4' : 'var(--border)'}`, borderRadius: 8, fontSize: 12, fontWeight: 500, fontFamily: 'var(--font-body)', cursor: 'pointer', transition: 'all 0.2s' }}>
+                    {plannedDay ? '✓ Added' : '📅 Add to Plan'}
+                  </button>
+                  {showPlanPicker && (
+                    <>
+                      <div onClick={() => setShowPlanPicker(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+                      <div style={{ position: 'absolute', top: '110%', right: 0, zIndex: 41, background: 'white', border: '1px solid var(--border)', borderRadius: 10, boxShadow: '0 8px 24px rgba(42,37,32,0.16)', padding: 14, width: 300 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 10 }}>Add to which day?</div>
+                        {DAYS.map(day => (
+                          <div key={day} style={{ marginBottom: 8 }}>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>{day}</div>
+                            <div style={{ display: 'flex', gap: 5 }}>
+                              {SLOTS.map(slot => {
+                                const already = isInPlan(day, slot);
+                                return (
+                                  <button key={slot} onClick={() => addToPlanSlot(day, slot)} disabled={already}
+                                    title={`${SLOT_LABEL[slot]}`}
+                                    style={{ flex: 1, padding: '6px 4px', borderRadius: 6, border: `1px solid ${already ? '#A8D4B4' : 'var(--border)'}`, background: already ? '#E8F5EC' : 'var(--bg)', color: already ? '#2A5C3A' : 'var(--text-muted)', fontSize: 10, fontFamily: 'var(--font-body)', cursor: already ? 'default' : 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                                    <span style={{ fontSize: 12 }}>{already ? '✓' : SLOT_ICON[slot]}</span>
+                                    {SLOT_LABEL[slot]}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
                 <button onClick={async () => { await onAddToGroceries(recipe); setAddedToGroceries(true); setTimeout(() => setAddedToGroceries(false), 2000); }}
                   title="Add this recipe's ingredients to your grocery list"
                   style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', background: addedToGroceries ? '#E8F5EC' : 'var(--surface)', color: addedToGroceries ? '#2A5C3A' : 'var(--text-muted)', border: `1px solid ${addedToGroceries ? '#A8D4B4' : 'var(--border)'}`, borderRadius: 8, fontSize: 12, fontWeight: 500, fontFamily: 'var(--font-body)', cursor: 'pointer', transition: 'all 0.2s' }}>
