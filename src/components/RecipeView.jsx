@@ -44,7 +44,7 @@ function scaleAmt(amount, scale) {
   return formatAmount(n * scale);
 }
 
-export default function RecipeView({ recipe, collections, onClose, onUpdate, onDelete, onAddToGroceries, mealPlan, onUpdatePlan }) {
+export default function RecipeView({ recipe, collections, onClose, onUpdate, onDelete, onAddToGroceries, onAddIngredientToGroceries, mealPlan, onUpdatePlan }) {
   const [imgError, setImgError] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [scale, setScale] = useState(1);
@@ -74,6 +74,14 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
   };
 
   const isInPlan = (day, slot) => daySlots(mealPlan || {}, day)[slot].includes(id);
+  const [hoverIngIdx, setHoverIngIdx] = useState(null);
+  const [addedIngIdx, setAddedIngIdx] = useState(null);
+
+  const addSingleIngredient = async (ing) => {
+    await onAddIngredientToGroceries(ing, recipe.title);
+    setAddedIngIdx(ing._idx);
+    setTimeout(() => setAddedIngIdx(null), 1400);
+  };
 
   const {
     id, title, description, image_url, prep_time, cook_time, total_time,
@@ -398,9 +406,25 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
                     <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, marginBottom: 16 }}>Ingredients</div>
                     <ul style={{ listStyle: 'none' }}>
                       {ingredients.map((ing, i) => (
-                        <li key={i} style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border)', fontSize: 14, lineHeight: 1.4, ...(i === 0 ? { borderTop: '1px solid var(--border)' } : {}) }}>
+                        <li key={i}
+                          onMouseEnter={() => setHoverIngIdx(i)}
+                          onMouseLeave={() => setHoverIngIdx(null)}
+                          style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border)', fontSize: 14, lineHeight: 1.4, alignItems: 'flex-start', position: 'relative', ...(i === 0 ? { borderTop: '1px solid var(--border)' } : {}) }}>
                           <span style={{ fontWeight: 600, minWidth: 72, color: 'var(--accent)', fontSize: 13, flexShrink: 0 }}>{scaleAmt(ing.amount, scale)}{ing.unit ? ` ${ing.unit}` : ''}</span>
-                          <span>{decodeEntities(ing.item)}{ing.note && <span style={{ color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic', display: 'block', marginTop: 2 }}>{ing.note}</span>}</span>
+                          <span style={{ flex: 1 }}>{decodeEntities(ing.item)}{ing.note && <span style={{ color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic', display: 'block', marginTop: 2 }}>{ing.note}</span>}</span>
+                          <button
+                            onClick={() => addSingleIngredient({ ...ing, amount: scaleAmt(ing.amount, scale), _idx: i })}
+                            title="Add just this ingredient to your grocery list"
+                            style={{
+                              flexShrink: 0, width: 24, height: 24, borderRadius: 6, border: 'none', cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700,
+                              transition: 'all 0.15s',
+                              opacity: (hoverIngIdx === i || addedIngIdx === i) ? 1 : 0,
+                              background: addedIngIdx === i ? '#E8F5EC' : 'var(--accent-light)',
+                              color: addedIngIdx === i ? '#2A5C3A' : 'var(--accent)',
+                            }}>
+                            {addedIngIdx === i ? '✓' : '+'}
+                          </button>
                         </li>
                       ))}
                     </ul>

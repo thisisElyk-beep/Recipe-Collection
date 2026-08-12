@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CAT_ICON, CAT_ORDER, matchesStaple, shoppingAmountText, coreItem } from '../lib/grocery';
 
 export default function GroceriesTab({ savedList, onUpdate, staples }) {
@@ -9,6 +9,24 @@ export default function GroceriesTab({ savedList, onUpdate, staples }) {
   const checked = new Set(savedList?.checked || []);
 
   const itemKey = (it) => coreItem(it.item);
+
+  // Auto-cross-out staples whenever the list or staples change — covers items
+  // added individually, whole-recipe adds, and lists saved before this rule.
+  // We track which staple keys we've already auto-applied (autoStaples) so a
+  // manual uncheck ("actually I need this") isn't immediately re-checked again.
+  useEffect(() => {
+    if (!items.length || !staples?.length) return;
+    const autoApplied = new Set(savedList?.autoStaples || []);
+    const stapleKeys = items.filter(it => matchesStaple(it.item, staples)).map(it => coreItem(it.item));
+    const newOnes = stapleKeys.filter(k => !autoApplied.has(k) && !checked.has(k));
+    if (!newOnes.length) return;
+    onUpdate({
+      ...savedList,
+      checked: [...checked, ...newOnes],
+      autoStaples: [...autoApplied, ...stapleKeys],
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items.length, staples]);
 
   const toggle = (it) => {
     const k = itemKey(it);
