@@ -103,7 +103,14 @@ export default function App() {
   // Add one recipe's ingredients into the saved grocery list (merging amounts)
   const addRecipeToGroceries = async (recipe) => {
     const merged = mergeIngredientsIntoList(groceries?.items || [], recipe);
-    await updateGroceries({ items: merged, checked: groceries?.checked || [], savedAt: groceries?.savedAt || new Date().toISOString() });
+    await updateGroceries({ items: merged, checked: groceries?.checked || [], savedAt: groceries?.savedAt || new Date().toISOString(), autoStaples: groceries?.autoStaples || [] });
+  };
+
+  // Add a single ingredient (not the whole recipe) into the saved grocery list
+  const addIngredientToGroceries = async (ing, recipeTitle) => {
+    const soloRecipe = { title: recipeTitle || 'Added manually', ingredients: [ing] };
+    const merged = mergeIngredientsIntoList(groceries?.items || [], soloRecipe);
+    await updateGroceries({ items: merged, checked: groceries?.checked || [], savedAt: groceries?.savedAt || new Date().toISOString(), autoStaples: groceries?.autoStaples || [] });
   };
 
   const collections = ['All Recipes','Favorites',...customCollections.map(c=>c.name)];
@@ -199,7 +206,7 @@ export default function App() {
 
       <main className="main">
         {viewingRecipe ? (
-          <RecipeView recipe={viewingRecipe} collections={collections} onClose={()=>setViewingRecipe(null)} onUpdate={updateRecipe} onDelete={deleteRecipe} onAddToGroceries={addRecipeToGroceries} mealPlan={mealPlan} onUpdatePlan={updateMealPlan} />
+          <RecipeView recipe={viewingRecipe} collections={collections} onClose={()=>setViewingRecipe(null)} onUpdate={updateRecipe} onDelete={deleteRecipe} onAddToGroceries={addRecipeToGroceries} onAddIngredientToGroceries={addIngredientToGroceries} mealPlan={mealPlan} onUpdatePlan={updateMealPlan} />
         ) : (
           <RecipeGrid
             recipes={filteredRecipes} loading={loading} searchQuery={searchQuery}
