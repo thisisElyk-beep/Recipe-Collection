@@ -47,6 +47,8 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
   const [imgError, setImgError] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [scale, setScale] = useState(1);
+  const [customScaling, setCustomScaling] = useState(false);
+  const [customInput, setCustomInput] = useState('');
   const [cookMode, setCookMode] = useState(false);
   const [editingImage, setEditingImage] = useState(false);
   const [newImageUrl, setNewImageUrl] = useState('');
@@ -73,7 +75,7 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
   const scaledServings = () => {
     if (scale === 1 || !servings) return servings;
     const n = parseFloat(servings);
-    if (!isNaN(n)) return `${n * scale} (${scale}x)`;
+    if (!isNaN(n)) return `${Math.round(n * scale * 100) / 100} (${scale}x)`;
     return `${servings} x${scale}`;
   };
 
@@ -175,12 +177,42 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
                 Back
               </button>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: 2, background: 'var(--tag-bg)', borderRadius: 8, padding: 3 }}>
+                <div style={{ display: 'flex', gap: 2, background: 'var(--tag-bg)', borderRadius: 8, padding: 3, alignItems: 'center' }}>
                   {[1, 2, 3].map(s => (
-                    <button key={s} onClick={() => setScale(s)} style={{ padding: '5px 12px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: scale === s ? 600 : 400, fontFamily: 'var(--font-body)', cursor: 'pointer', transition: 'all 0.15s', background: scale === s ? 'var(--accent)' : 'transparent', color: scale === s ? 'white' : 'var(--text-muted)' }}>
+                    <button key={s} onClick={() => { setScale(s); setCustomScaling(false); }} style={{ padding: '5px 12px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: (!customScaling && scale === s) ? 600 : 400, fontFamily: 'var(--font-body)', cursor: 'pointer', transition: 'all 0.15s', background: (!customScaling && scale === s) ? 'var(--accent)' : 'transparent', color: (!customScaling && scale === s) ? 'white' : 'var(--text-muted)' }}>
                       {s}x
                     </button>
                   ))}
+                  {customScaling ? (
+                    <input
+                      autoFocus
+                      value={customInput}
+                      onChange={e => setCustomInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          const n = parseFloat(customInput);
+                          if (!isNaN(n) && n > 0) setScale(Math.round(n * 100) / 100);
+                          else setCustomScaling(false);
+                        }
+                        if (e.key === 'Escape') setCustomScaling(false);
+                      }}
+                      onBlur={() => {
+                        const n = parseFloat(customInput);
+                        if (!isNaN(n) && n > 0) setScale(Math.round(n * 100) / 100);
+                        else setCustomScaling(false);
+                      }}
+                      placeholder="e.g. 2.5"
+                      inputMode="decimal"
+                      style={{ width: 58, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--accent)', fontSize: 12, fontFamily: 'var(--font-body)', outline: 'none', background: 'white', color: 'var(--text)' }}
+                    />
+                  ) : (
+                    <button
+                      onClick={() => { setCustomInput(![1,2,3].includes(scale) ? scale.toString() : ''); setCustomScaling(true); }}
+                      title="Enter any custom multiplier"
+                      style={{ padding: '5px 12px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: ![1,2,3].includes(scale) ? 600 : 400, fontFamily: 'var(--font-body)', cursor: 'pointer', transition: 'all 0.15s', background: ![1,2,3].includes(scale) ? 'var(--accent)' : 'transparent', color: ![1,2,3].includes(scale) ? 'white' : 'var(--text-muted)' }}>
+                      {![1,2,3].includes(scale) ? `${scale}x` : 'Custom'}
+                    </button>
+                  )}
                 </div>
                 <button onClick={() => setCookMode(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: 'var(--accent-light)', color: 'var(--accent)', border: '1px solid #E8C4A8', borderRadius: 8, fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-body)', cursor: 'pointer' }}>Cook Mode</button>
                 <button onClick={async () => { await onAddToGroceries(recipe); setAddedToGroceries(true); setTimeout(() => setAddedToGroceries(false), 2000); }}

@@ -1,0 +1,2499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0B1220">
+<title>Calisthenics Progression</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F6F7F9;
+    --surface: #FFFFFF;
+    --surface-2: #FAFBFC;
+    --border: #E4E7EC;
+    --border-strong: #CDD2DA;
+    --text: #0B1220;
+    --text-muted: #5A6675;
+    --text-faint: #98A2B3;
+    --accent: #1F6B4A;
+    --accent-soft: #E6F0EB;
+    --accent-pip: #2E8B63;
+    --warn: #B45309;
+    --warn-soft: #FEF3E2;
+    --danger: #B42318;
+    --deload: #6941C6;
+    --deload-soft: #F0EBFA;
+    --shadow: 0 1px 2px rgba(11, 18, 32, 0.04), 0 0 0 1px var(--border);
+    --radius: 10px;
+    --radius-sm: 6px;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+
+  /* Layout */
+  .app { max-width: 720px; margin: 0 auto; padding: 0 16px 80px; }
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    padding: 16px 0 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .top-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .brand {
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  .brand span { color: var(--accent); }
+  .pill {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    padding: 2px 8px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+  }
+  .pill.ok { color: var(--accent); border-color: var(--accent-soft); background: var(--accent-soft); }
+  .pill.deload { color: var(--deload); border-color: var(--deload); background: var(--deload-soft); }
+  .pill-group { display: flex; gap: 6px; align-items: center; }
+
+  /* Mode tabs */
+  .mode-tabs {
+    display: flex; gap: 4px;
+    background: var(--surface);
+    padding: 4px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-top: 14px;
+  }
+  .mode-tab {
+    flex: 1;
+    padding: 9px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    border-radius: 6px;
+    text-align: center;
+    transition: background 0.15s ease;
+  }
+  .mode-tab.active { background: var(--text); color: var(--surface); }
+
+  /* Today header */
+  .today-header {
+    margin-top: 16px;
+    padding: 16px 18px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .today-date {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .today-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-top: 4px;
+  }
+  .today-meta {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .today-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+  .today-empty .icon { font-size: 24px; color: var(--accent); margin-bottom: 8px; }
+
+  /* Phase header */
+  .phase-header {
+    margin-top: 12px;
+    padding: 16px 18px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .phase-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .phase-eyebrow .dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
+  .phase-name { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+  .phase-sub { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+  .phase-goal { font-size: 14px; color: var(--text); margin-top: 10px; line-height: 1.55; }
+  .phase-progress {
+    margin-top: 14px;
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--text-muted);
+  }
+  .progress-track {
+    flex: 1; height: 6px; background: var(--border); border-radius: 999px; overflow: hidden;
+  }
+  .progress-fill { height: 100%; background: var(--accent); transition: width 0.4s ease; }
+
+  /* Stream sections */
+  .stream-section { margin-top: 24px; }
+  .stream-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+    padding: 0 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .stream-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* Skill card */
+  .skill-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: box-shadow 0.15s ease;
+  }
+  .skill-card.complete { background: var(--surface-2); }
+  .skill-head {
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 14px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .skill-info { flex: 1; min-width: 0; }
+  .skill-name {
+    font-size: 15px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+    flex-wrap: wrap;
+  }
+  .skill-name .check { color: var(--accent); font-size: 14px; }
+  .recency {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--bg);
+    color: var(--text-faint);
+    border: 1px solid var(--border);
+    font-weight: 500;
+    letter-spacing: 0.03em;
+  }
+  .recency.stale { color: var(--warn); border-color: var(--warn-soft); background: var(--warn-soft); }
+  .recency.fresh { color: var(--accent); border-color: var(--accent-soft); background: var(--accent-soft); }
+  .tier-name {
+    font-size: 13px; color: var(--text-muted); margin-top: 2px;
+    font-family: var(--mono);
+  }
+
+  /* Readout */
+  .readout { text-align: right; min-width: 84px; }
+  .readout-value {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    line-height: 1;
+  }
+  .readout-value .unit {
+    font-size: 11px; color: var(--text-faint); margin-left: 2px; font-weight: 500;
+  }
+  .readout-target {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .readout-target.met { color: var(--accent); }
+  .readout-target.deload { color: var(--deload); }
+
+  /* Gate pips */
+  .gate-pips {
+    display: flex; gap: 4px;
+    padding: 0 16px 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .gate-pips.persided { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .gate-pips-row { display: flex; gap: 4px; align-items: center; }
+  .gate-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-right: 6px;
+    min-width: 28px;
+  }
+  .pip {
+    width: 18px; height: 6px;
+    background: var(--border);
+    border-radius: 2px;
+    transition: background 0.2s ease;
+  }
+  .pip.filled { background: var(--accent-pip); }
+
+  /* Card body */
+  .skill-body {
+    border-top: 1px solid var(--border);
+    padding: 16px;
+    display: none;
+    background: var(--surface-2);
+  }
+  .skill-card.open .skill-body { display: block; }
+  .skill-card.open .chev { transform: rotate(180deg); }
+  .chev {
+    color: var(--text-faint);
+    font-size: 12px;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  /* Log form */
+  .log-section { margin-bottom: 16px; }
+  .log-section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .log-row {
+    display: flex; gap: 8px; align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .input-group {
+    flex: 1; display: flex; align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 0 12px;
+    height: 40px;
+    min-width: 90px;
+  }
+  .input-group:focus-within { border-color: var(--text); }
+  .input-group label {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin-right: 8px;
+  }
+  .input-group input {
+    flex: 1; border: none; outline: none; background: transparent;
+    font-family: var(--mono); font-size: 15px; font-weight: 500;
+    width: 100%; min-width: 0;
+  }
+  .input-group .unit {
+    font-family: var(--mono); font-size: 11px; color: var(--text-faint);
+  }
+  .notes-input {
+    width: 100%;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    height: 36px;
+    background: var(--surface);
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .notes-input:focus { outline: none; border-color: var(--text); }
+
+  /* Side group for unilateral */
+  .side-group {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+  .side-group-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .side-tag {
+    font-weight: 700;
+    color: var(--text);
+    padding: 2px 8px;
+    background: var(--bg);
+    border-radius: 4px;
+  }
+
+  /* Hold sets list */
+  .hold-set {
+    display: flex; gap: 8px; align-items: center; margin-bottom: 6px;
+  }
+  .hold-set .set-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    min-width: 36px;
+  }
+  .hold-set .remove {
+    color: var(--text-faint);
+    font-size: 16px;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+  .hold-set .remove:hover { color: var(--danger); background: var(--surface); }
+  .add-set-btn {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 6px 10px;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    width: 100%;
+    text-align: center;
+    margin-top: 4px;
+  }
+  .add-set-btn:hover { color: var(--text); border-color: var(--text-muted); }
+
+  .btn {
+    height: 40px;
+    padding: 0 16px;
+    background: var(--text);
+    color: var(--surface);
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    font-size: 14px;
+    transition: opacity 0.15s ease;
+  }
+  .btn:hover:not(:disabled) { opacity: 0.85; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn.ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border-strong);
+  }
+  .btn.danger {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--border-strong);
+  }
+  .btn.accent { background: var(--accent); }
+  .btn.small { height: 32px; padding: 0 12px; font-size: 13px; }
+
+  /* Notes */
+  .skill-notes {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.55;
+    padding: 10px 12px;
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    border-left: 2px solid var(--border-strong);
+    margin-bottom: 12px;
+  }
+
+  /* History */
+  .history { margin-top: 16px; }
+  .history-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+  }
+  .history-row {
+    display: flex; justify-content: space-between;
+    font-family: var(--mono); font-size: 12px;
+    padding: 4px 0;
+    border-bottom: 1px dashed var(--border);
+    gap: 8px;
+  }
+  .history-row:last-child { border-bottom: none; }
+  .history-row.gate { color: var(--accent); }
+  .history-row.deload-row { color: var(--deload); }
+  .history-date { color: var(--text-faint); white-space: nowrap; }
+  .history-value { flex: 1; }
+  .history-note {
+    font-size: 11px; color: var(--text-muted);
+    font-style: italic;
+    font-family: var(--sans);
+    margin-left: 8px;
+  }
+
+  /* Sparkline */
+  .sparkline-wrap {
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .sparkline-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+  }
+  .sparkline { display: block; }
+
+  /* Tier controls */
+  .tier-controls {
+    display: flex; gap: 8px; margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  /* Advance banner */
+  .advance-banner {
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-pip);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: var(--accent);
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  }
+  .advance-banner button {
+    background: var(--accent); color: white;
+    padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 500;
+  }
+
+  .deload-banner {
+    background: var(--deload-soft);
+    border: 1px solid var(--deload);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: var(--deload);
+  }
+
+  /* Phase complete banner */
+  .phase-complete-banner {
+    margin-top: 16px;
+    background: var(--accent);
+    color: white;
+    padding: 16px 18px;
+    border-radius: var(--radius);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .phase-complete-banner button {
+    background: white; color: var(--accent);
+    padding: 8px 14px; border-radius: 4px; font-size: 13px; font-weight: 600;
+  }
+
+  /* Setup screen */
+  .setup {
+    background: var(--surface);
+    padding: 24px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-top: 40px;
+    text-align: center;
+  }
+  .setup code {
+    display: block;
+    text-align: left;
+    background: var(--bg);
+    padding: 12px;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 12px;
+    margin-top: 12px;
+    white-space: pre-wrap;
+    color: var(--text);
+  }
+
+  /* Phase tabs */
+  .phase-tabs {
+    display: flex; gap: 4px;
+    background: var(--surface);
+    padding: 4px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-top: 14px;
+    overflow-x: auto;
+  }
+  .phase-tab {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    border-radius: 6px;
+    text-align: center;
+    white-space: nowrap;
+    transition: background 0.15s ease;
+  }
+  .phase-tab.active { background: var(--text); color: var(--surface); }
+  .phase-tab.locked { color: var(--text-faint); opacity: 0.5; }
+
+  /* Footer */
+  .footer {
+    margin-top: 32px;
+    padding: 16px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+  .footer button {
+    color: var(--text-muted);
+    text-decoration: underline;
+    margin: 0 6px;
+  }
+
+  /* Settings panel */
+  .settings-panel {
+    background: var(--surface);
+    padding: 16px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-top: 16px;
+  }
+  .settings-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row label { font-size: 14px; color: var(--text-muted); }
+  .settings-row .desc { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+
+  .toggle {
+    width: 44px; height: 24px;
+    background: var(--border);
+    border-radius: 999px;
+    position: relative;
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+  }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 20px; height: 20px;
+    background: white;
+    border-radius: 50%;
+    top: 2px; left: 2px;
+    transition: transform 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .toggle.on { background: var(--accent); }
+  .toggle.on::after { transform: translateX(20px); }
+  .toggle.deload-toggle.on { background: var(--deload); }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 20px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--text); color: var(--surface);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    opacity: 0;
+    transition: all 0.2s ease;
+    pointer-events: none;
+    z-index: 100;
+    max-width: 90vw;
+    text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .loading {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  /* Week strip */
+  .week-strip {
+    display: flex;
+    gap: 4px;
+    padding: 10px 8px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 12px;
+  }
+  .week-day {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 2px;
+    border-radius: 6px;
+    transition: background 0.15s ease;
+  }
+  .week-day.today {
+    background: var(--bg);
+    box-shadow: inset 0 0 0 1px var(--text);
+  }
+  .day-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    letter-spacing: 0.06em;
+    font-weight: 500;
+  }
+  .week-day.today .day-label { color: var(--text); font-weight: 600; }
+  .day-marker {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border-strong);
+  }
+  .week-day.practice .day-marker { background: var(--accent); }
+  .week-day.practice.today .day-marker { box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  /* Rest screen */
+  .rest-screen {
+    background: var(--surface);
+    padding: 32px 24px;
+    border-radius: var(--radius);
+    text-align: center;
+    box-shadow: var(--shadow);
+    margin-bottom: 12px;
+  }
+  .rest-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .rest-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 10px;
+  }
+  .rest-body {
+    color: var(--text-muted);
+    margin: 0 auto 20px;
+    line-height: 1.6;
+    font-size: 14px;
+    max-width: 380px;
+  }
+  .rest-override-btn {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border-strong);
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .rest-override-btn:hover { color: var(--text); border-color: var(--text-muted); }
+
+  /* Schedule editor in settings */
+  .schedule-row {
+    display: block !important;
+    padding: 14px 0 !important;
+  }
+  .schedule-row .row-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    gap: 12px;
+  }
+  .schedule-toggles {
+    display: flex;
+    gap: 4px;
+  }
+  .schedule-toggle {
+    flex: 1;
+    padding: 10px 0;
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    transition: all 0.15s ease;
+  }
+  .schedule-toggle.on {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .schedule-summary {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 8px;
+    text-align: right;
+  }
+
+  /* PR badge */
+  .pr-badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-pip);
+    padding: 1px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.02em;
+    margin-top: 2px;
+  }
+
+  /* At-tier text */
+  .at-tier {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 2px;
+    letter-spacing: 0.02em;
+  }
+
+  /* Graduation modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(11, 18, 32, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .modal {
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 28px 24px 24px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 20px 50px rgba(11,18,32,0.2);
+    animation: slideUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .modal-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .modal-eyebrow::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+  .modal-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+  }
+  .modal-sub {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-bottom: 18px;
+  }
+  .modal-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .stat-cell {
+    background: var(--bg);
+    padding: 12px 8px;
+    border-radius: var(--radius-sm);
+    text-align: center;
+  }
+  .stat-value {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+  .stat-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 4px;
+  }
+  .modal-sparkline {
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    margin-bottom: 18px;
+    text-align: center;
+  }
+  .modal-next {
+    background: var(--accent-soft);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--accent);
+  }
+  .modal-next .next-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent-pip);
+    margin-bottom: 4px;
+  }
+  .modal-next .next-name {
+    font-weight: 600;
+    color: var(--accent);
+    font-size: 15px;
+  }
+  .modal-btn {
+    background: var(--accent);
+    color: white;
+    width: 100%;
+    height: 44px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .modal-btn:hover { opacity: 0.9; }
+
+  /* Weekly summary */
+  .weekly-summary {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .weekly-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .weekly-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .weekly-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .weekly-stat {
+    text-align: center;
+  }
+  .weekly-stat-value {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+  .weekly-stat-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+  }
+  .weekly-dismiss {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    font-size: 16px;
+    color: var(--text-faint);
+    padding: 4px 8px;
+    border-radius: 4px;
+    line-height: 1;
+  }
+  .weekly-dismiss:hover { color: var(--text); background: var(--bg); }
+
+  @media (max-width: 480px) {
+    .skill-head { gap: 10px; padding: 12px 14px; }
+    .readout { min-width: 70px; }
+    .readout-value { font-size: 18px; }
+    .phase-name, .today-title { font-size: 19px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <header class="top">
+    <div class="top-row">
+      <div class="brand">Progression<span>.</span></div>
+      <div class="pill-group">
+        <div class="pill" id="deloadPill" style="display:none">deload</div>
+        <div class="pill" id="authStatus">connecting</div>
+      </div>
+    </div>
+    <div class="mode-tabs" id="modeTabs">
+      <button class="mode-tab active" onclick="window.setViewMode('today')">Today</button>
+      <button class="mode-tab" onclick="window.setViewMode('phases')">Phases</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="loading">Loading your progressions…</div>
+  </main>
+
+  <div class="footer">
+    <button onclick="window.toggleSettings()">settings</button>
+    <button onclick="window.exportData()">export</button>
+    <button onclick="window.resetAll()">reset</button>
+  </div>
+
+  <div id="settingsPanel" style="display:none"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, addDoc, query, orderBy, limit, getDocs, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+// ============================================================
+// FIREBASE CONFIG — REPLACE WITH YOUR PROJECT VALUES
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyDOtYQoRCUGQwq2wzdCPYVAYZset1GpKNU",
+  authDomain: "calisthenics-progression-e5b08.firebaseapp.com",
+  projectId: "calisthenics-progression-e5b08",
+  storageBucket: "calisthenics-progression-e5b08.firebasestorage.app",
+  messagingSenderId: "640065152411",
+  appId: "1:640065152411:web:56e0abfd305b4f027c6d3e"
+};
+
+// ============================================================
+// PROGRESSION DATA
+// ============================================================
+// `perSide: true` lives at the tier level — means each side logs separately
+// and both sides must reach the gate threshold to advance.
+
+const SKILLS = [
+  // ============= PUSH STREAM =============
+  {
+    id: "pushup",
+    name: "Push-up progression",
+    stream: "push",
+    tiers: [
+      { phase: 1, name: "Knee push-up",        type: "reps", gate: { reps: 15, sets: 3 }, notes: "Hands under shoulders, hollow body, full ROM." },
+      { phase: 1, name: "Full push-up",        type: "reps", gate: { reps: 20, sets: 3 }, notes: "Phase 1 milestone. Elbows ~45°, ribs down.", milestone: true },
+      { phase: 2, name: "Diamond push-up",     type: "reps", gate: { reps: 12, sets: 3 }, notes: "Thumbs and index touch. Elbows close to ribs." },
+      { phase: 2, name: "Archer push-up",      type: "reps", perSide: true, gate: { reps: 5, sets: 3 }, notes: "Side-loaded. Hover before the bottom-out." },
+      { phase: 3, name: "Pseudo-planche push-up", type: "reps", gate: { reps: 5, sets: 3 }, notes: "Hands at hips, lean forward, straight arms briefly at top." }
+    ]
+  },
+  {
+    id: "dip",
+    name: "Dip progression",
+    stream: "push",
+    tiers: [
+      { phase: 1, name: "Bench dip",         type: "reps", gate: { reps: 12, sets: 3 } },
+      { phase: 1, name: "Parallel bar dip",  type: "reps", gate: { reps: 10, sets: 3 }, notes: "Phase 1 milestone. Shoulders down, full lockout.", milestone: true },
+      { phase: 2, name: "Deep parallel dip", type: "reps", gate: { reps: 8,  sets: 3 }, notes: "Shoulders below elbows." },
+      { phase: 3, name: "Ring dip (turned out)", type: "reps", gate: { reps: 5, sets: 3 }, notes: "Rings to hips, externally rotate at top." }
+    ]
+  },
+  {
+    id: "pike",
+    name: "Pike push-up → HSPU",
+    stream: "push",
+    tiers: [
+      { phase: 1, name: "Pike push-up",      type: "reps", gate: { reps: 8,  sets: 3 }, notes: "Phase 1 milestone. Stack shoulders over hands.", milestone: true },
+      { phase: 2, name: "Feet-elevated pike", type: "reps", gate: { reps: 5,  sets: 3 }, notes: "Box or chair under feet. Walk hands closer." },
+      { phase: 3, name: "Wall HSPU (full ROM)", type: "reps", gate: { reps: 5, sets: 1 }, notes: "Phase 3 milestone. Head touches the floor, full press.", milestone: true },
+      { phase: 4, name: "Strict HSPU (full ROM)", type: "reps", gate: { reps: 5, sets: 1 }, notes: "Free-standing or rings. Head to floor, full lockout.", milestone: true }
+    ]
+  },
+  {
+    id: "handstand",
+    name: "Handstand",
+    stream: "push",
+    tiers: [
+      { phase: 2, name: "Wall handstand, chest-to-wall", type: "hold", gate: { seconds: 45 }, notes: "Phase 2 milestone. Stack shoulders, ribs tucked.", milestone: true },
+      { phase: 2, name: "Wall handstand, belly-to-wall", type: "hold", gate: { seconds: 30 }, notes: "Toes touch wall, full body line." },
+      { phase: 3, name: "Free-standing handstand",       type: "hold", gate: { seconds: 30 }, notes: "Phase 3 milestone. Balance in the fingertips.", milestone: true },
+      { phase: 4, name: "Handstand walk (5 m)",          type: "reps", gate: { reps: 1, sets: 1 }, notes: "Five meters in any direction.", milestone: true }
+    ]
+  },
+  {
+    id: "planche",
+    name: "Planche progression",
+    stream: "push",
+    tiers: [
+      { phase: 2, name: "Tuck planche",          type: "hold", gate: { seconds: 5 },  notes: "Phase 2 milestone. Hips above shoulders, full lean.", milestone: true },
+      { phase: 3, name: "Advanced tuck planche", type: "hold", gate: { seconds: 10 }, notes: "Phase 3 milestone. Flat back, knees off chest.", milestone: true },
+      { phase: 4, name: "Straddle planche",      type: "hold", gate: { seconds: 5 },  notes: "Wide legs, flat back, full protraction.", milestone: true }
+    ]
+  },
+
+  // ============= PULL STREAM =============
+  {
+    id: "pullup",
+    name: "Pull-up progression",
+    stream: "pull",
+    tiers: [
+      { phase: 1, name: "Scap pull-up",         type: "reps", gate: { reps: 10, sets: 3 }, notes: "Depress shoulders without bending arms." },
+      { phase: 1, name: "Negative pull-up",     type: "reps", gate: { reps: 5,  sets: 3 }, notes: "3-5s eccentric. Start chin over bar." },
+      { phase: 1, name: "Strict pull-up",       type: "reps", gate: { reps: 8,  sets: 3 }, notes: "Phase 1 milestone. Dead hang start, chin over bar.", milestone: true },
+      { phase: 2, name: "Weighted pull-up",     type: "reps", gate: { reps: 5,  sets: 3 }, notes: "Add load. Maintain dead-hang start." },
+      { phase: 3, name: "Chest-to-bar pull-up", type: "reps", gate: { reps: 5,  sets: 3 }, notes: "Lower sternum touches the bar." },
+      { phase: 4, name: "One-arm pull-up",      type: "reps", perSide: true, gate: { reps: 1, sets: 1 }, notes: "Bands → unassisted.", milestone: true }
+    ]
+  },
+  {
+    id: "row",
+    name: "Row progression",
+    stream: "pull",
+    tiers: [
+      { phase: 1, name: "Australian row (feet on floor)", type: "reps", gate: { reps: 15, sets: 3 } },
+      { phase: 1, name: "Australian row (feet elevated)", type: "reps", gate: { reps: 12, sets: 3 }, notes: "Phase 1 milestone. Hollow body, pull to ribs.", milestone: true },
+      { phase: 2, name: "Archer row",                     type: "reps", perSide: true, gate: { reps: 5, sets: 3 } },
+      { phase: 3, name: "Front lever row (tuck)",         type: "reps", gate: { reps: 5,  sets: 3 } }
+    ]
+  },
+  {
+    id: "frontlever",
+    name: "Front lever progression",
+    stream: "pull",
+    tiers: [
+      { phase: 2, name: "Tuck front lever",         type: "hold", gate: { seconds: 20 }, notes: "Knees to chest, back parallel to floor." },
+      { phase: 2, name: "Advanced tuck front lever", type: "hold", gate: { seconds: 15 }, notes: "Phase 2 milestone. Hips fully open, knees off chest.", milestone: true },
+      { phase: 3, name: "Single-leg front lever",    type: "hold", perSide: true, gate: { seconds: 10 }, notes: "One leg out, one tucked." },
+      { phase: 3, name: "Straddle front lever",      type: "hold", gate: { seconds: 5 },  notes: "Phase 3 milestone. Wide legs, body parallel.", milestone: true },
+      { phase: 4, name: "Full front lever",          type: "hold", gate: { seconds: 5 },  notes: "Body fully straight and parallel.", milestone: true }
+    ]
+  },
+  {
+    id: "backlever",
+    name: "Back lever progression",
+    stream: "pull",
+    tiers: [
+      { phase: 2, name: "Tuck back lever",          type: "hold", gate: { seconds: 10 }, notes: "Phase 2 milestone. Inverted, knees to chest, body parallel.", milestone: true },
+      { phase: 3, name: "Advanced tuck back lever", type: "hold", gate: { seconds: 10 }, notes: "Knees out of chest, back flat." },
+      { phase: 3, name: "Straddle back lever",      type: "hold", gate: { seconds: 10 }, notes: "Phase 3 milestone. Wide legs, body parallel.", milestone: true },
+      { phase: 4, name: "Full back lever",          type: "hold", gate: { seconds: 10 }, notes: "Body fully extended, parallel to floor.", milestone: true }
+    ]
+  },
+  {
+    id: "muscleup",
+    name: "Muscle-up progression",
+    stream: "pull",
+    tiers: [
+      { phase: 3, name: "High pull-up (chest-to-bar)", type: "reps", gate: { reps: 3, sets: 3 } },
+      { phase: 3, name: "False-grip pull-up",          type: "reps", gate: { reps: 5, sets: 3 }, notes: "Wrists over the bar." },
+      { phase: 3, name: "Bar muscle-up negative",       type: "reps", gate: { reps: 3, sets: 3 }, notes: "5s eccentric from support." },
+      { phase: 3, name: "Strict bar muscle-up",         type: "reps", gate: { reps: 1, sets: 1 }, notes: "Phase 3 milestone. No kip.", milestone: true },
+      { phase: 4, name: "Ring muscle-up",               type: "reps", gate: { reps: 1, sets: 1 }, notes: "Phase 4 milestone. Strict, false grip.", milestone: true }
+    ]
+  },
+
+  // ============= CORE / LEVERS =============
+  {
+    id: "hollow",
+    name: "Hollow body",
+    stream: "core",
+    tiers: [
+      { phase: 1, name: "Hollow body hold", type: "hold", gate: { seconds: 60 }, notes: "Phase 1 milestone. Lower back pressed flat to floor.", milestone: true }
+    ]
+  },
+  {
+    id: "arch",
+    name: "Arch / superman",
+    stream: "core",
+    tiers: [
+      { phase: 1, name: "Arch / superman hold", type: "hold", gate: { seconds: 60 }, notes: "Phase 1 milestone. Lift chest and quads off floor.", milestone: true }
+    ]
+  },
+  {
+    id: "lsit",
+    name: "L-sit progression",
+    stream: "core",
+    tiers: [
+      { phase: 2, name: "Tucked L-sit",   type: "hold", gate: { seconds: 30 } },
+      { phase: 2, name: "L-sit (parallettes)", type: "hold", gate: { seconds: 15 }, notes: "Phase 2 milestone. Legs straight and parallel.", milestone: true },
+      { phase: 3, name: "Straddle V-sit", type: "hold", gate: { seconds: 5 },  notes: "Legs above parallel, wide." }
+    ]
+  },
+
+  // ============= LEGS =============
+  {
+    id: "squat",
+    name: "Squat / unilateral",
+    stream: "legs",
+    tiers: [
+      { phase: 1, name: "Bodyweight squat", type: "reps", gate: { reps: 25, sets: 3 } },
+      { phase: 1, name: "Split squat",       type: "reps", perSide: true, gate: { reps: 20, sets: 3 }, notes: "Phase 1 milestone. Vertical shin in front leg.", milestone: true },
+      { phase: 2, name: "Assisted pistol",   type: "reps", perSide: true, gate: { reps: 5,  sets: 3 }, notes: "Hold a doorframe or TRX." },
+      { phase: 2, name: "Pistol squat",      type: "reps", perSide: true, gate: { reps: 3,  sets: 1 }, notes: "Phase 2 milestone. Heel stays planted.", milestone: true },
+      { phase: 3, name: "Shrimp squat",      type: "reps", perSide: true, gate: { reps: 3,  sets: 1 }, notes: "Hold back foot in hand; knee touches the floor." }
+    ]
+  },
+  {
+    id: "hamstring",
+    name: "Posterior chain",
+    stream: "legs",
+    tiers: [
+      { phase: 3, name: "Nordic curl (assisted)", type: "reps", gate: { reps: 5, sets: 3 }, notes: "Slow eccentric, push back up with arms." },
+      { phase: 4, name: "Nordic curl (full)",     type: "reps", gate: { reps: 3, sets: 3 }, notes: "Full eccentric without assistance." }
+    ]
+  }
+];
+
+const PHASES = [
+  { id: 1, name: "Foundation",          subtitle: "Months 0-3",  goal: "Build the strength floor that protects joints once leverage skills begin." },
+  { id: 2, name: "Skill Introduction",  subtitle: "Months 3-9",  goal: "Introduce static holds in their easiest leverage. Hold work is volume-based — accumulate 30-60s total per skill per session in short sets." },
+  { id: 3, name: "Intermediate",        subtitle: "Months 9-18", goal: "Progress slows. Track holds in seconds, not just reps. Frequency beats volume." },
+  { id: 4, name: "Advanced",            subtitle: "18+ Months",  goal: "Named skills. Long timelines. Sub-maximal frequent practice with one true working set near, not at, failure." }
+];
+
+const STREAMS = {
+  push: "Push",
+  pull: "Pull",
+  core: "Core & levers",
+  legs: "Legs"
+};
+
+const STALE_DAYS = 3;
+const DELOAD_DISCOUNT = 0.6; // suggested target during deload
+
+// ============================================================
+// STATE
+// ============================================================
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let uid = null;
+let state = {
+  currentPhase: 1,
+  gateThreshold: 3,
+  viewMode: 'today',
+  viewPhase: 1,
+  deloadActive: false,
+  schedule: { 0: false, 1: true, 2: false, 3: true, 4: false, 5: true, 6: true }, // Sun-Sat; default Mon/Wed/Fri/Sat
+  weeklySummaryDismissedAt: null,
+  skills: {},          // skillId -> { currentTierIdx, gatesHit, bestValue, lastSession, tierStartedAt, lastPR }
+  recentSessions: {}   // skillId -> [last sessions]
+};
+let activeCardId = null;
+let unsub = null;
+let settingsOpen = false;
+let restDayOverride = false; // ephemeral
+let graduationModal = null; // ephemeral; { skillName, completedTier, nextTier, days, sessionCount, prCount, sparklinePoints, gateTarget, type }
+// Form state for in-progress logging — { skillId: { holdSets: [...], notes, reps, sets, side } }
+let formState = {};
+
+// ============================================================
+// AUTH
+// ============================================================
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    uid = user.uid;
+    document.getElementById("authStatus").textContent = "synced";
+    document.getElementById("authStatus").classList.add("ok");
+    await loadState();
+    subscribeState();
+  } else {
+    try {
+      await signInAnonymously(auth);
+    } catch (e) {
+      document.getElementById("authStatus").textContent = "offline";
+      renderSetup(e.message);
+    }
+  }
+});
+
+if (firebaseConfig.apiKey === "YOUR_API_KEY") {
+  renderSetup();
+} else {
+  signInAnonymously(auth).catch(e => renderSetup(e.message));
+}
+
+function renderSetup(error) {
+  document.getElementById("main").innerHTML = `
+    <div class="setup">
+      <h2 style="margin-bottom: 12px; font-size: 18px;">First-time setup</h2>
+      <p style="color: var(--text-muted); font-size: 14px;">Open this file in an editor and replace the <code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-family:var(--mono);font-size:12px">firebaseConfig</code> block near the top of the &lt;script&gt; with your project values.</p>
+      <code>const firebaseConfig = {
+  apiKey: "...",
+  authDomain: "...",
+  projectId: "...",
+  ...
+};</code>
+      ${error ? `<p style="color: var(--danger); margin-top: 16px; font-size: 13px;">${error}</p>` : ""}
+      <p style="color: var(--text-muted); font-size: 12px; margin-top: 16px;">Enable Anonymous Authentication and Firestore in the Firebase console.</p>
+    </div>
+  `;
+}
+
+// ============================================================
+// DATA
+// ============================================================
+function userDocRef() { return doc(db, "users", uid); }
+function sessionsRef() { return collection(db, "users", uid, "sessions"); }
+
+async function loadState() {
+  const snap = await getDoc(userDocRef());
+  if (snap.exists()) {
+    const data = snap.data();
+    state.currentPhase = data.currentPhase || 1;
+    state.gateThreshold = data.gateThreshold || 3;
+    state.deloadActive = data.deloadActive || false;
+    state.schedule = data.schedule || state.schedule;
+    state.weeklySummaryDismissedAt = data.weeklySummaryDismissedAt || null;
+    state.skills = data.skills || {};
+    state.viewPhase = data.currentPhase || 1;
+  } else {
+    for (const s of SKILLS) {
+      state.skills[s.id] = initSkillState(s);
+    }
+    await saveState();
+  }
+  // Ensure all skills have state (handles new skills added in updates)
+  for (const s of SKILLS) {
+    if (!state.skills[s.id]) state.skills[s.id] = initSkillState(s);
+    migrateGateShape(s);
+  }
+  await loadRecentSessions();
+  render();
+}
+
+function initSkillState(skill) {
+  const tier = skill.tiers[0];
+  return {
+    currentTierIdx: 0,
+    gatesHit: tier?.perSide ? { L: 0, R: 0 } : 0,
+    bestValue: 0,
+    lastSession: null,
+    tierStartedAt: Date.now(),
+    lastPR: null
+  };
+}
+
+function migrateGateShape(skill) {
+  const cur = state.skills[skill.id];
+  const tier = skill.tiers[cur.currentTierIdx];
+  if (!tier) return;
+  if (tier.perSide && typeof cur.gatesHit === 'number') {
+    cur.gatesHit = { L: 0, R: 0 };
+  } else if (!tier.perSide && typeof cur.gatesHit === 'object') {
+    cur.gatesHit = 0;
+  }
+  // Migrate missing tier-start timestamp for existing users
+  if (!cur.tierStartedAt) cur.tierStartedAt = cur.lastSession || Date.now();
+  if (cur.lastPR === undefined) cur.lastPR = null;
+}
+
+async function loadRecentSessions() {
+  const q = query(sessionsRef(), orderBy("date", "desc"), limit(300));
+  const snaps = await getDocs(q);
+  state.recentSessions = {};
+  snaps.forEach(d => {
+    const data = d.data();
+    if (!state.recentSessions[data.skillId]) state.recentSessions[data.skillId] = [];
+    state.recentSessions[data.skillId].push({ ...data, id: d.id });
+  });
+}
+
+function subscribeState() {
+  if (unsub) unsub();
+  unsub = onSnapshot(userDocRef(), (snap) => {
+    if (!snap.exists()) return;
+    const data = snap.data();
+    state.currentPhase = data.currentPhase || 1;
+    state.gateThreshold = data.gateThreshold || 3;
+    state.deloadActive = data.deloadActive || false;
+    state.schedule = data.schedule || state.schedule;
+    state.skills = data.skills || state.skills;
+    render();
+  });
+}
+
+async function saveState() {
+  await setDoc(userDocRef(), {
+    currentPhase: state.currentPhase,
+    gateThreshold: state.gateThreshold,
+    deloadActive: state.deloadActive,
+    schedule: state.schedule,
+    weeklySummaryDismissedAt: state.weeklySummaryDismissedAt,
+    skills: state.skills,
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+}
+
+async function logSession(skillId, sessionData) {
+  const skill = SKILLS.find(s => s.id === skillId);
+  const tier = skill.tiers[state.skills[skillId].currentTierIdx];
+  const gateMet = sessionMeetsGate(sessionData, tier);
+  const inDeload = state.deloadActive;
+  const cur = state.skills[skillId];
+
+  // PR detection — must beat existing best, and existing best must be > 0
+  // (first log at a new tier sets baseline, not a PR)
+  const prevBest = cur.bestValue || 0;
+  const wasPR = !inDeload && prevBest > 0 && sessionData.value > prevBest;
+  const prDelta = wasPR ? (sessionData.value - prevBest) : 0;
+
+  const entry = {
+    skillId,
+    tierIdx: cur.currentTierIdx,
+    tierName: tier.name,
+    type: tier.type,
+    value: sessionData.value,       // max single value
+    volume: sessionData.volume || null,
+    sets: sessionData.sets || 1,
+    side: sessionData.side || null,
+    notes: sessionData.notes || "",
+    gateMet,
+    wasPR,
+    prDelta: prDelta || null,
+    deload: inDeload,
+    date: serverTimestamp()
+  };
+  await addDoc(sessionsRef(), entry);
+
+  // Update best
+  if (sessionData.value > prevBest) cur.bestValue = sessionData.value;
+
+  // Record PR for 24h badge
+  if (wasPR) cur.lastPR = { amount: prDelta, at: Date.now() };
+
+  // Increment gate (skip during deload)
+  if (gateMet && !inDeload) {
+    if (tier.perSide) {
+      const side = sessionData.side || 'L';
+      if (typeof cur.gatesHit !== 'object') cur.gatesHit = { L: 0, R: 0 };
+      cur.gatesHit[side] = (cur.gatesHit[side] || 0) + 1;
+    } else {
+      cur.gatesHit = (cur.gatesHit || 0) + 1;
+    }
+  }
+  cur.lastSession = Date.now();
+
+  await saveState();
+  await loadRecentSessions();
+
+  // Toast — PR takes precedence over gate
+  if (inDeload) {
+    showToast("Logged (deload — gate not counted).");
+  } else if (wasPR) {
+    const unit = tier.type === 'hold' ? 's' : '';
+    showToast(`PR. +${prDelta}${unit}.`);
+  } else if (gateMet) {
+    const hitCount = tier.perSide
+      ? `${cur.gatesHit.L}L · ${cur.gatesHit.R}R / ${state.gateThreshold}`
+      : `${cur.gatesHit}/${state.gateThreshold}`;
+    showToast(`Gate hit. ${hitCount}.`);
+  } else {
+    showToast("Logged.");
+  }
+  delete formState[skillId];
+  render();
+}
+
+function sessionMeetsGate(sessionData, tier) {
+  if (tier.type === "hold") {
+    return sessionData.value >= tier.gate.seconds;
+  } else {
+    const repsMet = sessionData.value >= tier.gate.reps;
+    const setsMet = (sessionData.sets || 1) >= (tier.gate.sets || 1);
+    return repsMet && setsMet;
+  }
+}
+
+async function advanceTier(skillId) {
+  const skill = SKILLS.find(s => s.id === skillId);
+  const cur = state.skills[skillId];
+  if (cur.currentTierIdx < skill.tiers.length - 1) {
+    const completedTierIdx = cur.currentTierIdx;
+    const summary = buildGraduationSummary(skillId, completedTierIdx);
+
+    cur.currentTierIdx += 1;
+    const nextTier = skill.tiers[cur.currentTierIdx];
+    cur.gatesHit = nextTier.perSide ? { L: 0, R: 0 } : 0;
+    cur.bestValue = 0;
+    cur.tierStartedAt = Date.now();
+    cur.lastPR = null;
+    await saveState();
+
+    // Show graduation modal (purely celebratory; advance already happened)
+    graduationModal = summary;
+    render();
+  }
+}
+
+function buildGraduationSummary(skillId, completedTierIdx) {
+  const skill = SKILLS.find(s => s.id === skillId);
+  const tier = skill.tiers[completedTierIdx];
+  const cur = state.skills[skillId];
+  const sessions = (state.recentSessions[skillId] || []).filter(s => s.tierIdx === completedTierIdx);
+  const startedAt = cur.tierStartedAt;
+  const days = startedAt ? Math.max(1, Math.floor((Date.now() - startedAt) / (1000*60*60*24))) : null;
+  const prCount = sessions.filter(s => s.wasPR).length;
+  // Oldest-to-newest for sparkline
+  const sparklinePoints = sessions.slice().reverse().map(s => s.value).filter(v => typeof v === 'number');
+  const gateTarget = tier.type === 'hold' ? tier.gate.seconds : tier.gate.reps;
+  return {
+    skillName: skill.name,
+    completedTier: tier.name,
+    nextTier: skill.tiers[completedTierIdx + 1]?.name,
+    days,
+    sessionCount: sessions.length,
+    prCount,
+    sparklinePoints,
+    gateTarget,
+    type: tier.type
+  };
+}
+
+window.closeGraduationModal = function() {
+  graduationModal = null;
+  render();
+};
+
+async function regressTier(skillId) {
+  const skill = SKILLS.find(s => s.id === skillId);
+  const cur = state.skills[skillId];
+  if (cur.currentTierIdx > 0) {
+    cur.currentTierIdx -= 1;
+    const prevTier = skill.tiers[cur.currentTierIdx];
+    cur.gatesHit = prevTier.perSide ? { L: 0, R: 0 } : 0;
+    cur.bestValue = 0;
+    cur.tierStartedAt = Date.now();
+    cur.lastPR = null;
+    await saveState();
+    showToast("Stepped back one tier.");
+    render();
+  }
+}
+
+async function advancePhase() {
+  if (state.currentPhase < 4) {
+    state.currentPhase += 1;
+    state.viewPhase = state.currentPhase;
+    await saveState();
+    showToast(`Phase ${state.currentPhase}. Onward.`);
+    render();
+  }
+}
+
+window.resetAll = async function() {
+  if (!confirm("Reset everything? All progress and history will be deleted.")) return;
+  const snaps = await getDocs(sessionsRef());
+  for (const d of snaps.docs) await deleteDoc(d.ref);
+  state.currentPhase = 1;
+  state.gateThreshold = 3;
+  state.viewPhase = 1;
+  state.deloadActive = false;
+  state.weeklySummaryDismissedAt = null;
+  state.skills = {};
+  for (const s of SKILLS) state.skills[s.id] = initSkillState(s);
+  state.recentSessions = {};
+  await saveState();
+  render();
+  showToast("Reset complete.");
+};
+
+window.exportData = async function() {
+  const snaps = await getDocs(query(sessionsRef(), orderBy("date", "desc")));
+  const sessions = snaps.docs.map(d => ({ id: d.id, ...d.data(), date: d.data().date?.toDate?.()?.toISOString() }));
+  const blob = new Blob([JSON.stringify({ state, sessions }, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `progression-export-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+window.toggleSettings = function() {
+  settingsOpen = !settingsOpen;
+  render();
+};
+
+window.changeThreshold = async function(delta) {
+  state.gateThreshold = Math.max(1, Math.min(10, state.gateThreshold + delta));
+  await saveState();
+  render();
+};
+
+window.toggleDeload = async function() {
+  state.deloadActive = !state.deloadActive;
+  await saveState();
+  showToast(state.deloadActive ? "Deload week active. Gate counters paused." : "Deload off. Gate counters live.");
+  render();
+};
+
+// ============================================================
+// SCHEDULE
+// ============================================================
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const WEEKDAY_SHORT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+function todayDOW() { return new Date().getDay(); }
+function isPracticeToday() { return state.schedule[todayDOW()] === true; }
+
+function practiceDaysPerWeek() {
+  return Object.values(state.schedule).filter(v => v === true).length;
+}
+
+window.toggleScheduleDay = async function(dow) {
+  state.schedule[dow] = !state.schedule[dow];
+  await saveState();
+  render();
+};
+
+window.overrideRestDay = function() {
+  restDayOverride = true;
+  render();
+};
+
+window.cancelRestOverride = function() {
+  restDayOverride = false;
+  render();
+};
+
+// ============================================================
+// SESSION PLANNER
+// ============================================================
+function daysSince(ts) {
+  if (!ts) return Infinity;
+  const diff = Date.now() - ts;
+  return diff / (1000 * 60 * 60 * 24);
+}
+
+function recencyLabel(ts) {
+  if (!ts) return { text: "never", className: "stale" };
+  const d = daysSince(ts);
+  if (d < 1) return { text: "today", className: "fresh" };
+  const days = Math.floor(d);
+  return {
+    text: `${days}d ago`,
+    className: days >= STALE_DAYS ? "stale" : (days >= 1 ? "" : "fresh")
+  };
+}
+
+function buildTodaySession() {
+  const phase = state.currentPhase;
+  // Skills whose current tier is in the current phase
+  const active = SKILLS.filter(s => {
+    const cur = state.skills[s.id];
+    if (!cur) return false;
+    const tier = s.tiers[cur.currentTierIdx];
+    return tier && tier.phase === phase;
+  });
+
+  // Compute staleness and filter to stale
+  const withStaleness = active.map(s => ({
+    skill: s,
+    daysAgo: daysSince(state.skills[s.id].lastSession)
+  }));
+
+  const stale = withStaleness.filter(x => x.daysAgo >= STALE_DAYS);
+  // Sort by staleness desc within stream
+  const byStream = { push: [], pull: [], core: [], legs: [] };
+  stale.forEach(x => byStream[x.skill.stream].push(x));
+  Object.values(byStream).forEach(arr => arr.sort((a, b) => b.daysAgo - a.daysAgo));
+
+  // Round-robin in CNS order: push, pull, core, legs
+  const order = ['push', 'pull', 'core', 'legs'];
+  const session = [];
+  while (session.length < 6) {
+    let added = false;
+    for (const st of order) {
+      if (byStream[st].length && session.length < 6) {
+        session.push(byStream[st].shift());
+        added = true;
+      }
+    }
+    if (!added) break;
+  }
+  return session.map(x => x.skill);
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function render() {
+  renderModeTabs();
+  renderDeloadPill();
+  renderMain();
+  renderSettings();
+}
+
+function renderModeTabs() {
+  const tabs = document.querySelectorAll('.mode-tab');
+  tabs[0].classList.toggle('active', state.viewMode === 'today');
+  tabs[1].classList.toggle('active', state.viewMode === 'phases');
+}
+
+function renderDeloadPill() {
+  const p = document.getElementById("deloadPill");
+  if (state.deloadActive) {
+    p.style.display = "inline-block";
+    p.classList.add("deload");
+  } else {
+    p.style.display = "none";
+  }
+}
+
+window.setViewMode = function(mode) {
+  state.viewMode = mode;
+  render();
+};
+
+window.setViewPhase = function(p) {
+  state.viewPhase = p;
+  render();
+};
+
+function renderMain() {
+  if (state.viewMode === 'today') {
+    renderToday();
+  } else {
+    renderPhases();
+  }
+  if (graduationModal) renderGraduationModal();
+}
+
+function renderGraduationModal() {
+  const s = graduationModal;
+  const sparkline = s.sparklinePoints.length >= 2 ? buildModalSparkline(s.sparklinePoints, s.gateTarget) : '';
+  const html = `
+    <div class="modal-overlay" onclick="if(event.target===this)window.closeGraduationModal()">
+      <div class="modal">
+        <div class="modal-eyebrow">Tier cleared</div>
+        <div class="modal-title">${s.completedTier}</div>
+        <div class="modal-sub">${s.skillName}</div>
+        <div class="modal-stats">
+          <div class="stat-cell">
+            <div class="stat-value">${s.days ?? '—'}${s.days !== null ? 'd' : ''}</div>
+            <div class="stat-label">at tier</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-value">${s.sessionCount}</div>
+            <div class="stat-label">sessions</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-value">${s.prCount}</div>
+            <div class="stat-label">PRs</div>
+          </div>
+        </div>
+        ${sparkline ? `<div class="modal-sparkline">${sparkline}</div>` : ''}
+        ${s.nextTier ? `
+          <div class="modal-next">
+            <div class="next-label">Next</div>
+            <div class="next-name">${s.nextTier}</div>
+          </div>
+        ` : ''}
+        <button class="modal-btn" onclick="window.closeGraduationModal()">${s.nextTier ? 'Continue' : 'Done'}</button>
+      </div>
+    </div>
+  `;
+  // Append modal overlay to body
+  let modalRoot = document.getElementById('modalRoot');
+  if (!modalRoot) {
+    modalRoot = document.createElement('div');
+    modalRoot.id = 'modalRoot';
+    document.body.appendChild(modalRoot);
+  }
+  modalRoot.innerHTML = html;
+}
+
+function buildModalSparkline(points, gateTarget) {
+  const w = 360, h = 64, pad = 8;
+  const min = Math.min(...points, 0);
+  const max = Math.max(...points, gateTarget || 0);
+  const range = max - min || 1;
+  const stepX = points.length > 1 ? (w - pad * 2) / (points.length - 1) : 0;
+  const path = points.map((v, i) => {
+    const x = pad + i * stepX;
+    const y = h - pad - ((v - min) / range) * (h - pad * 2);
+    return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const gateY = gateTarget != null
+    ? h - pad - ((gateTarget - min) / range) * (h - pad * 2)
+    : null;
+  const lastX = pad + (points.length - 1) * stepX;
+  const lastY = h - pad - ((points[points.length - 1] - min) / range) * (h - pad * 2);
+  return `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="max-width:100%">
+    ${gateY !== null ? `<line x1="${pad}" y1="${gateY}" x2="${w - pad}" y2="${gateY}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3,4" opacity="0.5" />` : ''}
+    <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="4" fill="var(--accent)" />
+  </svg>`;
+}
+
+function clearModal() {
+  const r = document.getElementById('modalRoot');
+  if (r) r.innerHTML = '';
+}
+
+// Weekly summary
+function computeWeeklySummary() {
+  const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const allSessions = Object.values(state.recentSessions).flat()
+    .filter(s => {
+      const d = s.date?.toDate?.()?.getTime();
+      return d && d >= cutoff;
+    });
+  if (allSessions.length === 0) return null;
+  const distinctDays = new Set(allSessions.map(s => s.date.toDate().toDateString())).size;
+  const distinctSkills = new Set(allSessions.map(s => s.skillId)).size;
+  const prCount = allSessions.filter(s => s.wasPR).length;
+  const gateHits = allSessions.filter(s => s.gateMet && !s.deload).length;
+  return { distinctDays, distinctSkills, totalEntries: allSessions.length, prCount, gateHits };
+}
+
+function shouldShowWeeklySummary() {
+  const summary = computeWeeklySummary();
+  if (!summary || summary.distinctDays < 3) return null;
+  if (state.weeklySummaryDismissedAt) {
+    const days = (Date.now() - state.weeklySummaryDismissedAt) / (1000 * 60 * 60 * 24);
+    if (days < 6) return null;
+  }
+  return summary;
+}
+
+function renderWeeklySummary(summary) {
+  return `<div class="weekly-summary">
+    <button class="weekly-dismiss" onclick="window.dismissWeeklySummary()" title="Dismiss until next week">×</button>
+    <div class="weekly-eyebrow">Last 7 days</div>
+    <div class="weekly-title">Week in review</div>
+    <div class="weekly-stats">
+      <div class="weekly-stat">
+        <div class="weekly-stat-value">${summary.distinctDays}</div>
+        <div class="weekly-stat-label">days</div>
+      </div>
+      <div class="weekly-stat">
+        <div class="weekly-stat-value">${summary.distinctSkills}</div>
+        <div class="weekly-stat-label">skills</div>
+      </div>
+      <div class="weekly-stat">
+        <div class="weekly-stat-value">${summary.prCount}</div>
+        <div class="weekly-stat-label">PRs</div>
+      </div>
+      <div class="weekly-stat">
+        <div class="weekly-stat-value">${summary.gateHits}</div>
+        <div class="weekly-stat-label">gate hits</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+window.dismissWeeklySummary = async function() {
+  state.weeklySummaryDismissedAt = Date.now();
+  await saveState();
+  render();
+};
+
+function renderToday() {
+  const isPractice = isPracticeToday();
+  const showRest = !isPractice && !restDayOverride;
+  const weekStripHtml = renderWeekStrip();
+  const summary = shouldShowWeeklySummary();
+  const weeklyHtml = summary ? renderWeeklySummary(summary) : '';
+
+  if (showRest) {
+    renderRestDay(weekStripHtml, weeklyHtml);
+    return;
+  }
+
+  const session = buildTodaySession();
+  const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  const overrideNotice = !isPractice && restDayOverride
+    ? `<div class="deload-banner" style="margin-top: 12px; background: var(--warn-soft); color: var(--warn); border-color: var(--warn);">
+        Training on a scheduled rest day. <button onclick="window.cancelRestOverride()" style="text-decoration: underline; color: inherit;">Cancel</button>
+       </div>`
+    : '';
+
+  let html = weekStripHtml + weeklyHtml + `
+    <div class="today-header">
+      <div class="today-date">${today}</div>
+      <div class="today-title">Today's session</div>
+      <div class="today-meta">
+        ${session.length === 0
+          ? `Phase ${state.currentPhase} · all skills trained within ${STALE_DAYS} days`
+          : `Phase ${state.currentPhase} · ${session.length} ${session.length === 1 ? 'skill' : 'skills'} ready · prioritized by recency, ordered by CNS load`
+        }
+      </div>
+    </div>
+    ${overrideNotice}
+  `;
+
+  if (state.deloadActive) {
+    html += `<div class="deload-banner" style="margin-top: 12px;">
+      Deload week. Targets shown at ${Math.round(DELOAD_DISCOUNT * 100)}% — focus on cleanliness, not PRs. Gate counters paused.
+    </div>`;
+  }
+
+  if (session.length === 0) {
+    html += `<div class="today-empty">
+      <div class="icon">✓</div>
+      <div>You're caught up. Train again when something goes stale.</div>
+    </div>`;
+  } else {
+    const byStream = { push: [], pull: [], core: [], legs: [] };
+    session.forEach(s => byStream[s.stream].push(s));
+    for (const streamKey of Object.keys(STREAMS)) {
+      const streamSkills = byStream[streamKey];
+      if (!streamSkills.length) continue;
+      html += `<div class="stream-section">
+        <div class="stream-label">${STREAMS[streamKey]}</div>`;
+      for (const skill of streamSkills) {
+        html += renderSkillCard(skill, { viewPhase: state.currentPhase, contextual: false });
+      }
+      html += `</div>`;
+    }
+  }
+
+  document.getElementById("main").innerHTML = html;
+  reattachActiveCard();
+  if (!graduationModal) clearModal();
+}
+
+function renderRestDay(weekStripHtml, weeklyHtml) {
+  const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  const html = weekStripHtml + (weeklyHtml || '') + `
+    <div class="rest-screen">
+      <div class="rest-eyebrow">${today}</div>
+      <div class="rest-title">Rest day</div>
+      <div class="rest-body">
+        Recovery is when the adaptations happen. Sleep, eat, walk, mobility work — the gains from your last session land on days like today. Don't grind.
+      </div>
+      <button class="rest-override-btn" onclick="window.overrideRestDay()">Train anyway</button>
+    </div>
+  `;
+  document.getElementById("main").innerHTML = html;
+  if (!graduationModal) clearModal();
+}
+
+function renderWeekStrip() {
+  const today = todayDOW();
+  return `<div class="week-strip">
+    ${WEEKDAY_SHORT.map((d, i) => {
+      const isPractice = state.schedule[i] === true;
+      const isToday = i === today;
+      return `<div class="week-day ${isToday ? 'today' : ''} ${isPractice ? 'practice' : 'rest'}" title="${WEEKDAYS[i]} · ${isPractice ? 'Practice' : 'Rest'}">
+        <div class="day-label">${d}</div>
+        <div class="day-marker"></div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function renderPhases() {
+  const phase = PHASES[state.viewPhase - 1];
+  const skillsInPhase = SKILLS.filter(s => s.tiers.some(t => t.phase === state.viewPhase));
+
+  const milestonesInPhase = SKILLS.flatMap(s =>
+    s.tiers.map((t, idx) => ({ skill: s, tier: t, idx }))
+  ).filter(m => m.tier.phase === state.viewPhase && m.tier.milestone);
+
+  const milestonesHit = milestonesInPhase.filter(m => {
+    const cur = state.skills[m.skill.id];
+    return cur && cur.currentTierIdx > m.idx;
+  }).length;
+
+  const phaseComplete = milestonesHit >= milestonesInPhase.length && milestonesInPhase.length > 0;
+  const isCurrentPhase = state.viewPhase === state.currentPhase;
+
+  let html = `
+    <div class="phase-tabs" id="phaseTabs">
+      ${PHASES.map(p => {
+        const locked = p.id > state.currentPhase;
+        const active = p.id === state.viewPhase;
+        return `<button class="phase-tab ${active ? 'active' : ''} ${locked ? 'locked' : ''}" onclick="window.setViewPhase(${p.id})">Phase ${p.id}</button>`;
+      }).join("")}
+    </div>
+    <div class="phase-header">
+      <div class="phase-eyebrow">
+        <span class="dot"></span>
+        ${isCurrentPhase ? "Active phase" : (state.viewPhase < state.currentPhase ? "Past phase" : "Upcoming")}
+      </div>
+      <div class="phase-name">${phase.name}</div>
+      <div class="phase-sub">${phase.subtitle}</div>
+      <div class="phase-goal">${phase.goal}</div>
+      <div class="phase-progress">
+        <span>${milestonesHit}/${milestonesInPhase.length}</span>
+        <div class="progress-track"><div class="progress-fill" style="width: ${milestonesInPhase.length ? (milestonesHit / milestonesInPhase.length * 100) : 0}%"></div></div>
+        <span>milestones</span>
+      </div>
+    </div>
+  `;
+
+  if (phaseComplete && isCurrentPhase && state.currentPhase < 4) {
+    html += `<div class="phase-complete-banner">
+      <div>Phase ${state.currentPhase} complete. Ready for ${PHASES[state.currentPhase].name}.</div>
+      <button onclick="window.advancePhase()">Advance phase</button>
+    </div>`;
+  }
+
+  for (const streamKey of Object.keys(STREAMS)) {
+    const streamSkills = skillsInPhase.filter(s => s.stream === streamKey);
+    if (!streamSkills.length) continue;
+    html += `<div class="stream-section">
+      <div class="stream-label">${STREAMS[streamKey]}</div>`;
+    for (const skill of streamSkills) {
+      html += renderSkillCard(skill, { viewPhase: state.viewPhase, contextual: true });
+    }
+    html += `</div>`;
+  }
+
+  document.getElementById("main").innerHTML = html;
+  reattachActiveCard();
+  if (!graduationModal) clearModal();
+}
+
+function reattachActiveCard() {
+  if (activeCardId) {
+    const card = document.querySelector(`[data-skill-id="${activeCardId}"]`);
+    if (card) card.classList.add("open");
+  }
+}
+
+function renderSkillCard(skill, opts) {
+  const { viewPhase, contextual } = opts;
+  const cur = state.skills[skill.id] || initSkillState(skill);
+  const tier = skill.tiers[cur.currentTierIdx];
+  const allDone = cur.currentTierIdx >= skill.tiers.length;
+  const tiersInViewPhase = skill.tiers.filter(t => t.phase === viewPhase);
+
+  // Determine which tier to show in this context
+  let cardTier, cardTierIdx, cardStatus;
+  if (tier && tier.phase === viewPhase) {
+    cardTier = tier;
+    cardTierIdx = cur.currentTierIdx;
+    cardStatus = "active";
+  } else if (tier && tier.phase > viewPhase) {
+    const lastInPhase = tiersInViewPhase[tiersInViewPhase.length - 1];
+    cardTier = lastInPhase;
+    cardTierIdx = skill.tiers.indexOf(lastInPhase);
+    cardStatus = "complete";
+  } else {
+    const firstInPhase = tiersInViewPhase[0];
+    if (!firstInPhase) return ""; // no tiers in this phase
+    cardTier = firstInPhase;
+    cardTierIdx = skill.tiers.indexOf(firstInPhase);
+    cardStatus = "upcoming";
+  }
+
+  const isActive = cardStatus === "active";
+  const showLogging = isActive && !allDone;
+
+  // Recency
+  const recency = recencyLabel(cur.lastSession);
+
+  // Readout
+  const valueDisplay = formatValue(cur.bestValue, cardTier);
+  const baseTarget = cardTier.type === "hold"
+    ? cardTier.gate.seconds
+    : `${cardTier.gate.reps}${cardTier.perSide ? '/side' : ''} × ${cardTier.gate.sets || 1}`;
+  let targetDisplay = cardTier.type === "hold" ? `gate ${baseTarget}s` : `gate ${baseTarget}`;
+  let deloadTargetDisplay = "";
+  if (state.deloadActive && isActive) {
+    if (cardTier.type === "hold") {
+      deloadTargetDisplay = `deload ${Math.round(cardTier.gate.seconds * DELOAD_DISCOUNT)}s`;
+    } else {
+      deloadTargetDisplay = `deload ${Math.round(cardTier.gate.reps * DELOAD_DISCOUNT)}`;
+    }
+  }
+  const targetMet = cur.bestValue > 0 && bestMeetsGate(cur.bestValue, cardTier);
+
+  // Pips
+  let pipsHtml = "";
+  if (isActive) {
+    if (cardTier.perSide) {
+      const gh = typeof cur.gatesHit === 'object' ? cur.gatesHit : { L: 0, R: 0 };
+      pipsHtml = `<div class="gate-pips persided">
+        <div class="gate-pips-row">
+          <span class="gate-label">L</span>
+          ${Array.from({ length: state.gateThreshold }, (_, i) =>
+            `<div class="pip ${i < (gh.L || 0) ? 'filled' : ''}"></div>`
+          ).join("")}
+        </div>
+        <div class="gate-pips-row">
+          <span class="gate-label">R</span>
+          ${Array.from({ length: state.gateThreshold }, (_, i) =>
+            `<div class="pip ${i < (gh.R || 0) ? 'filled' : ''}"></div>`
+          ).join("")}
+        </div>
+      </div>`;
+    } else {
+      const gh = typeof cur.gatesHit === 'number' ? cur.gatesHit : 0;
+      pipsHtml = `<div class="gate-pips">
+        <span class="gate-label">Gate</span>
+        ${Array.from({ length: state.gateThreshold }, (_, i) =>
+          `<div class="pip ${i < gh ? 'filled' : ''}"></div>`
+        ).join("")}
+      </div>`;
+    }
+  }
+
+  // Advance check
+  let canAdvance = false;
+  if (isActive) {
+    if (cardTier.perSide) {
+      const gh = cur.gatesHit;
+      canAdvance = (gh?.L || 0) >= state.gateThreshold && (gh?.R || 0) >= state.gateThreshold;
+    } else {
+      canAdvance = (cur.gatesHit || 0) >= state.gateThreshold;
+    }
+  }
+
+  const recentSessions = state.recentSessions[skill.id] || [];
+
+  return `
+    <div class="skill-card ${cardStatus === 'complete' ? 'complete' : ''}" data-skill-id="${skill.id}">
+      <div class="skill-head" onclick="window.toggleCard('${skill.id}')">
+        <div class="skill-info">
+          <div class="skill-name">
+            ${cardStatus === 'complete' ? '<span class="check">✓</span>' : ''}
+            ${skill.name}
+            ${isActive ? `<span class="recency ${recency.className}">${recency.text}</span>` : ''}
+            ${isActive ? renderPRBadge(cur, cardTier) : ''}
+          </div>
+          <div class="tier-name">
+            ${cardStatus === 'upcoming' ? 'starts at: ' : ''}${cardTier.name}
+          </div>
+          ${isActive ? renderAtTier(skill, cur) : ''}
+        </div>
+        <div class="readout">
+          <div class="readout-value">
+            ${valueDisplay.value}<span class="unit">${valueDisplay.unit}</span>
+          </div>
+          <div class="readout-target ${targetMet ? 'met' : ''}">${targetDisplay}</div>
+          ${deloadTargetDisplay ? `<div class="readout-target deload">${deloadTargetDisplay}</div>` : ''}
+        </div>
+        <div class="chev">▾</div>
+      </div>
+      ${pipsHtml}
+      <div class="skill-body">
+        ${cardTier.notes ? `<div class="skill-notes">${cardTier.notes}</div>` : ''}
+        ${canAdvance ? `
+          <div class="advance-banner">
+            <div>Gate threshold reached. Ready to advance.</div>
+            <button onclick="window.advanceTier('${skill.id}')">Advance tier</button>
+          </div>
+        ` : ''}
+        ${showLogging ? renderLogForm(skill.id, cardTier) : ''}
+        ${renderSparkline(skill.id, recentSessions, cardTier)}
+        ${recentSessions.length > 0 ? renderHistory(recentSessions.slice(0, 6)) : ''}
+        ${isActive ? `
+          <div class="tier-controls">
+            ${cur.currentTierIdx > 0 ? `<button class="btn ghost small" onclick="window.regressTier('${skill.id}')">Step back tier</button>` : ''}
+            ${cur.currentTierIdx < skill.tiers.length - 1 ? `<button class="btn ghost small" onclick="window.manualAdvance('${skill.id}')">Advance anyway</button>` : ''}
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderLogForm(skillId, tier) {
+  if (tier.type === "hold") {
+    return renderHoldForm(skillId, tier);
+  } else if (tier.perSide) {
+    return renderPerSideRepForm(skillId, tier);
+  } else {
+    return renderRepForm(skillId, tier);
+  }
+}
+
+function renderHoldForm(skillId, tier) {
+  // Volume hold form: list of sets, plus add-set button
+  if (!formState[skillId]) formState[skillId] = { holdSets: [''], notes: '' };
+  const fs = formState[skillId];
+  const setsHtml = fs.holdSets.map((val, idx) => `
+    <div class="hold-set">
+      <span class="set-num">Set ${idx + 1}</span>
+      <div class="input-group">
+        <input type="number" id="hold-${skillId}-${idx}" value="${val}" placeholder="0" inputmode="numeric" oninput="window.updateHoldSet('${skillId}', ${idx}, this.value)" />
+        <span class="unit">sec</span>
+      </div>
+      ${fs.holdSets.length > 1 ? `<button class="remove" onclick="window.removeHoldSet('${skillId}', ${idx})">×</button>` : ''}
+    </div>
+  `).join("");
+
+  return `
+    <div class="log-section">
+      <div class="log-section-label">Log session</div>
+      ${setsHtml}
+      <button class="add-set-btn" onclick="window.addHoldSet('${skillId}')">+ Add set</button>
+      <input type="text" class="notes-input" placeholder="Notes (optional)" value="${fs.notes || ''}" oninput="window.updateNotes('${skillId}', this.value)" />
+      <button class="btn accent" style="width: 100%;" onclick="window.submitHold('${skillId}')">Log session</button>
+    </div>
+  `;
+}
+
+function renderRepForm(skillId, tier) {
+  if (!formState[skillId]) formState[skillId] = { reps: '', sets: tier.gate.sets || 1, notes: '' };
+  const fs = formState[skillId];
+  return `
+    <div class="log-section">
+      <div class="log-section-label">Log session</div>
+      <div class="log-row">
+        <div class="input-group">
+          <label>Reps</label>
+          <input type="number" id="reps-${skillId}" value="${fs.reps}" placeholder="0" inputmode="numeric" oninput="window.updateRepsField('${skillId}', 'reps', this.value)" />
+        </div>
+        <div class="input-group">
+          <label>Sets</label>
+          <input type="number" id="sets-${skillId}" value="${fs.sets}" inputmode="numeric" oninput="window.updateRepsField('${skillId}', 'sets', this.value)" />
+        </div>
+      </div>
+      <input type="text" class="notes-input" placeholder="Notes (optional)" value="${fs.notes || ''}" oninput="window.updateNotes('${skillId}', this.value)" />
+      <button class="btn accent" style="width: 100%;" onclick="window.submitReps('${skillId}')">Log session</button>
+    </div>
+  `;
+}
+
+function renderPerSideRepForm(skillId, tier) {
+  if (!formState[skillId]) formState[skillId] = {
+    L: { reps: '', sets: tier.gate.sets || 1, notes: '' },
+    R: { reps: '', sets: tier.gate.sets || 1, notes: '' }
+  };
+  const fs = formState[skillId];
+  return `
+    <div class="log-section">
+      <div class="log-section-label">Log per side</div>
+      ${['L', 'R'].map(side => `
+        <div class="side-group">
+          <div class="side-group-label">
+            <span class="side-tag">${side === 'L' ? 'LEFT' : 'RIGHT'}</span>
+          </div>
+          <div class="log-row">
+            <div class="input-group">
+              <label>Reps</label>
+              <input type="number" value="${fs[side].reps}" placeholder="0" inputmode="numeric" oninput="window.updateSideField('${skillId}', '${side}', 'reps', this.value)" />
+            </div>
+            <div class="input-group">
+              <label>Sets</label>
+              <input type="number" value="${fs[side].sets}" inputmode="numeric" oninput="window.updateSideField('${skillId}', '${side}', 'sets', this.value)" />
+            </div>
+          </div>
+          <input type="text" class="notes-input" placeholder="Notes (optional)" value="${fs[side].notes || ''}" oninput="window.updateSideField('${skillId}', '${side}', 'notes', this.value)" />
+          <button class="btn accent small" style="width: 100%;" onclick="window.submitSide('${skillId}', '${side}')">Log ${side}</button>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderHistory(sessions) {
+  return `
+    <div class="history">
+      <div class="history-label">Last sessions</div>
+      ${sessions.map(s => {
+        const date = s.date?.toDate?.() ?? new Date();
+        const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        let valueStr;
+        if (s.type === "hold") {
+          valueStr = s.volume ? `${s.value}s max · ${s.volume}s vol (${s.sets})` : `${s.value}s`;
+        } else {
+          valueStr = `${s.value} × ${s.sets}`;
+        }
+        if (s.side) valueStr = `[${s.side}] ${valueStr}`;
+        return `<div class="history-row ${s.gateMet ? 'gate' : ''} ${s.deload ? 'deload-row' : ''}">
+          <span class="history-value">${valueStr}${s.gateMet ? ' ✓' : ''}${s.deload ? ' (D)' : ''}${s.notes ? `<span class="history-note">${escapeHtml(s.notes)}</span>` : ''}</span>
+          <span class="history-date">${dateStr}</span>
+        </div>`;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderSparkline(skillId, sessions, tier) {
+  if (!sessions || sessions.length < 3) return '';
+  // Take last 14 sessions, oldest to newest
+  const points = sessions.slice(0, 14).reverse().map(s => s.value).filter(v => typeof v === 'number');
+  if (points.length < 3) return '';
+  const w = 160, h = 32, pad = 4;
+  const min = Math.min(...points, 0);
+  const max = Math.max(...points, tier.type === 'hold' ? tier.gate.seconds : tier.gate.reps);
+  const range = max - min || 1;
+  const stepX = (w - pad * 2) / (points.length - 1);
+  const path = points.map((v, i) => {
+    const x = pad + i * stepX;
+    const y = h - pad - ((v - min) / range) * (h - pad * 2);
+    return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+
+  // Gate line
+  const gateVal = tier.type === 'hold' ? tier.gate.seconds : tier.gate.reps;
+  const gateY = h - pad - ((gateVal - min) / range) * (h - pad * 2);
+
+  // Last point dot
+  const lastX = pad + (points.length - 1) * stepX;
+  const lastY = h - pad - ((points[points.length - 1] - min) / range) * (h - pad * 2);
+
+  return `
+    <div class="sparkline-wrap">
+      <span class="sparkline-label">${points.length}-session trend</span>
+      <svg class="sparkline" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+        <line x1="${pad}" y1="${gateY}" x2="${w - pad}" y2="${gateY}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2,3" opacity="0.5" />
+        <path d="${path}" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="3" fill="var(--text)" />
+      </svg>
+    </div>
+  `;
+}
+
+function renderPRBadge(cur, tier) {
+  if (!cur.lastPR || !cur.lastPR.at) return '';
+  const ageMs = Date.now() - cur.lastPR.at;
+  if (ageMs > 24 * 60 * 60 * 1000) return '';
+  const unit = tier.type === 'hold' ? 's' : '';
+  return `<span class="pr-badge" title="Recent personal record">+${cur.lastPR.amount}${unit} PR</span>`;
+}
+
+function renderAtTier(skill, cur) {
+  const sessionsThisTier = (state.recentSessions[skill.id] || []).filter(s => s.tierIdx === cur.currentTierIdx).length;
+  const days = cur.tierStartedAt ? Math.max(0, Math.floor((Date.now() - cur.tierStartedAt) / (1000*60*60*24))) : null;
+  if (days === null && sessionsThisTier === 0) return '';
+  const parts = [];
+  if (days !== null) parts.push(days === 0 ? 'today' : `${days}d`);
+  parts.push(`${sessionsThisTier} ${sessionsThisTier === 1 ? 'session' : 'sessions'}`);
+  return `<div class="at-tier">at tier: ${parts.join(' · ')}</div>`;
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function formatValue(value, tier) {
+  if (!value || value === 0) return { value: "—", unit: "" };
+  if (tier.type === "hold") return { value: value, unit: "s" };
+  return { value: value, unit: "" };
+}
+
+function bestMeetsGate(bestValue, tier) {
+  if (tier.type === "hold") return bestValue >= tier.gate.seconds;
+  return bestValue >= tier.gate.reps;
+}
+
+// ============================================================
+// FORM HANDLERS
+// ============================================================
+window.toggleCard = function(skillId) {
+  const card = document.querySelector(`[data-skill-id="${skillId}"]`);
+  if (!card) return;
+  if (card.classList.contains("open")) {
+    card.classList.remove("open");
+    activeCardId = null;
+  } else {
+    document.querySelectorAll('.skill-card.open').forEach(c => c.classList.remove("open"));
+    card.classList.add("open");
+    activeCardId = skillId;
+  }
+};
+
+window.addHoldSet = function(skillId) {
+  if (!formState[skillId]) formState[skillId] = { holdSets: [''], notes: '' };
+  formState[skillId].holdSets.push('');
+  render();
+};
+
+window.removeHoldSet = function(skillId, idx) {
+  formState[skillId].holdSets.splice(idx, 1);
+  if (formState[skillId].holdSets.length === 0) formState[skillId].holdSets = [''];
+  render();
+};
+
+window.updateHoldSet = function(skillId, idx, val) {
+  if (!formState[skillId]) formState[skillId] = { holdSets: [''], notes: '' };
+  formState[skillId].holdSets[idx] = val;
+};
+
+window.updateNotes = function(skillId, val) {
+  if (!formState[skillId]) formState[skillId] = { holdSets: [''], notes: '' };
+  formState[skillId].notes = val;
+};
+
+window.updateRepsField = function(skillId, field, val) {
+  if (!formState[skillId]) formState[skillId] = { reps: '', sets: 1, notes: '' };
+  formState[skillId][field] = val;
+};
+
+window.updateSideField = function(skillId, side, field, val) {
+  if (!formState[skillId]) formState[skillId] = { L: {}, R: {} };
+  formState[skillId][side][field] = val;
+};
+
+window.submitHold = function(skillId) {
+  const fs = formState[skillId];
+  if (!fs) return;
+  const values = fs.holdSets.map(v => parseFloat(v)).filter(v => v > 0);
+  if (values.length === 0) { showToast("Enter at least one hold time."); return; }
+  const max = Math.max(...values);
+  const volume = values.reduce((a, b) => a + b, 0);
+  logSession(skillId, { value: max, volume, sets: values.length, notes: fs.notes });
+};
+
+window.submitReps = function(skillId) {
+  const fs = formState[skillId];
+  if (!fs) return;
+  const reps = parseInt(fs.reps);
+  const sets = parseInt(fs.sets) || 1;
+  if (!reps || reps <= 0) { showToast("Enter reps."); return; }
+  logSession(skillId, { value: reps, sets, notes: fs.notes });
+};
+
+window.submitSide = function(skillId, side) {
+  const fs = formState[skillId];
+  if (!fs || !fs[side]) return;
+  const reps = parseInt(fs[side].reps);
+  const sets = parseInt(fs[side].sets) || 1;
+  if (!reps || reps <= 0) { showToast(`Enter reps for ${side}.`); return; }
+  logSession(skillId, { value: reps, sets, side, notes: fs[side].notes });
+};
+
+window.advanceTier = advanceTier;
+window.regressTier = regressTier;
+window.advancePhase = advancePhase;
+window.manualAdvance = async function(skillId) {
+  if (!confirm("Advance this tier without hitting the gate threshold?")) return;
+  await advanceTier(skillId);
+};
+
+function renderSettings() {
+  const panel = document.getElementById("settingsPanel");
+  if (!settingsOpen) {
+    panel.style.display = "none";
+    return;
+  }
+  panel.style.display = "block";
+  panel.innerHTML = `
+    <div class="settings-panel">
+      <div class="settings-row schedule-row">
+        <div class="row-top">
+          <div>
+            <label>Weekly schedule</label>
+            <div class="desc">Tap to toggle practice / rest days.</div>
+          </div>
+        </div>
+        <div class="schedule-toggles">
+          ${WEEKDAYS.map((d, i) => `
+            <button class="schedule-toggle ${state.schedule[i] ? 'on' : ''}" onclick="window.toggleScheduleDay(${i})">${d}</button>
+          `).join('')}
+        </div>
+        <div class="schedule-summary">${practiceDaysPerWeek()} practice ${practiceDaysPerWeek() === 1 ? 'day' : 'days'} / week</div>
+      </div>
+      <div class="settings-row">
+        <div>
+          <label>Deload week</label>
+          <div class="desc">Pauses gate counters, shows ${Math.round(DELOAD_DISCOUNT * 100)}% targets.</div>
+        </div>
+        <div class="toggle deload-toggle ${state.deloadActive ? 'on' : ''}" onclick="window.toggleDeload()"></div>
+      </div>
+      <div class="settings-row">
+        <div>
+          <label>Gate threshold</label>
+          <div class="desc">Sessions at gate before tier advances.</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="btn ghost small" onclick="window.changeThreshold(-1)">−</button>
+          <span style="font-family:var(--mono);font-weight:600;min-width:24px;text-align:center;">${state.gateThreshold}</span>
+          <button class="btn ghost small" onclick="window.changeThreshold(1)">+</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label>Current phase</label>
+        <span style="font-family:var(--mono);">Phase ${state.currentPhase}</span>
+      </div>
+      <div class="settings-row">
+        <label>Account</label>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--text-faint);">${uid?.slice(0, 12) || 'not connected'}…</span>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2400);
+}
+
+</script>
+</body>
+</html>
