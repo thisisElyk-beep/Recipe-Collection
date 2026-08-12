@@ -199,7 +199,7 @@ export default function App() {
 
       <main className="main">
         {viewingRecipe ? (
-          <RecipeView recipe={viewingRecipe} collections={collections} onClose={()=>setViewingRecipe(null)} onUpdate={updateRecipe} onDelete={deleteRecipe} onAddToGroceries={addRecipeToGroceries} />
+          <RecipeView recipe={viewingRecipe} collections={collections} onClose={()=>setViewingRecipe(null)} onUpdate={updateRecipe} onDelete={deleteRecipe} onAddToGroceries={addRecipeToGroceries} mealPlan={mealPlan} onUpdatePlan={updateMealPlan} />
         ) : (
           <RecipeGrid
             recipes={filteredRecipes} loading={loading} searchQuery={searchQuery}
