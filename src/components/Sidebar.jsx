@@ -35,7 +35,13 @@ export default function Sidebar({ collections, selectedCollection, onSelectColle
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-logo">
+      <div
+        className="sidebar-logo"
+        onClick={() => onSelectCollection('All Recipes')}
+        role="button"
+        title="Back to All Recipes"
+        style={{ cursor: 'pointer' }}
+      >
         <h1>VAULT</h1>
         <span>Recipe Collection</span>
       </div>
