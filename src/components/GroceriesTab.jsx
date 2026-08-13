@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import { CAT_ICON, CAT_ORDER, matchesStaple, shoppingAmountText, coreItem } from '../lib/grocery';
+import { CAT_ICON, CAT_ORDER, matchesStaple, shoppingAmountText, coreItem, mergeIngredientsIntoList } from '../lib/grocery';
 
 export default function GroceriesTab({ savedList, onUpdate, staples }) {
   const [copied, setCopied] = useState(false);
+  const [newAmount, setNewAmount] = useState('');
+  const [newUnit, setNewUnit] = useState('');
+  const [newItem, setNewItem] = useState('');
 
   // savedList = { items: [{amount, unit, item, category, recipes}], checked: [keys], savedAt }
   const items = savedList?.items || [];
@@ -46,14 +49,48 @@ export default function GroceriesTab({ savedList, onUpdate, staples }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Quick-add a one-off item directly to the list (e.g. "paper towels", or
+  // anything not tied to a recipe). Merges with the same core-item logic
+  // everything else uses, so it combines correctly with recipe-sourced items.
+  const addItem = () => {
+    const name = newItem.trim();
+    if (!name) return;
+    const ing = { amount: newAmount.trim(), unit: newUnit.trim() || null, item: name };
+    const merged = mergeIngredientsIntoList(items, { title: 'Added manually', ingredients: [ing] });
+    onUpdate({
+      ...savedList,
+      items: merged,
+      checked: savedList?.checked || [],
+      autoStaples: savedList?.autoStaples || [],
+      savedAt: savedList?.savedAt || new Date().toISOString(),
+    });
+    setNewAmount(''); setNewUnit(''); setNewItem('');
+  };
+
+  const inp = { padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)', background: 'var(--surface)', outline: 'none', boxSizing: 'border-box' };
+
+  const QuickAddRow = () => (
+    <div style={{ display: 'flex', gap: 6 }}>
+      <input value={newAmount} onChange={e => setNewAmount(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} placeholder="amt" style={{ ...inp, width: 56 }} />
+      <input value={newUnit} onChange={e => setNewUnit(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} placeholder="unit" style={{ ...inp, width: 64 }} />
+      <input value={newItem} onChange={e => setNewItem(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} placeholder="Add an item…" style={{ ...inp, flex: 1 }} />
+      <button onClick={addItem} disabled={!newItem.trim()} style={{ padding: '8px 16px', borderRadius: 7, border: 'none', background: newItem.trim() ? 'var(--accent)' : 'var(--tag-bg)', color: newItem.trim() ? 'white' : 'var(--text-muted)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-body)', cursor: newItem.trim() ? 'pointer' : 'default', whiteSpace: 'nowrap' }}>
+        + Add
+      </button>
+    </div>
+  );
+
   if (!items.length) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', textAlign: 'center', gap: 10, height: '100%' }}>
-        <div style={{ fontSize: 40, opacity: 0.25 }}>🛒</div>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--text-muted)', fontWeight: 500 }}>No saved grocery list</h3>
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 360, lineHeight: 1.5 }}>
-          Generate a shopping list from selected recipes or your weekly plan, then tap <strong>Save to Groceries</strong> to keep it here.
-        </p>
+      <div style={{ maxWidth: 640, margin: '0 auto', padding: '40px 24px 60px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10, marginBottom: 32 }}>
+          <div style={{ fontSize: 40, opacity: 0.25 }}>🛒</div>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--text-muted)', fontWeight: 500 }}>No saved grocery list</h3>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 380, lineHeight: 1.5 }}>
+            Generate a list from selected recipes or your weekly plan, add ingredients from a recipe page, or add your own item below.
+          </p>
+        </div>
+        <QuickAddRow />
       </div>
     );
   }
@@ -77,6 +114,11 @@ export default function GroceriesTab({ savedList, onUpdate, staples }) {
           <button onClick={clearList} style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-muted)', fontSize: 12, fontFamily: 'var(--font-body)', cursor: 'pointer' }}>Clear</button>
           <button onClick={exportList} style={{ padding: '7px 16px', borderRadius: 7, border: 'none', background: 'var(--accent)', color: 'white', fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-body)', cursor: 'pointer' }}>{copied ? '✓ Copied!' : 'Export'}</button>
         </div>
+      </div>
+
+      {/* Quick add */}
+      <div style={{ marginBottom: 22, paddingBottom: 18, borderBottom: '1px solid var(--border)' }}>
+        <QuickAddRow />
       </div>
 
       {orderedCats.map(cat => (
