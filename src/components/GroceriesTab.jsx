@@ -1,6 +1,25 @@
 import { useState, useEffect } from 'react';
 import { CAT_ICON, CAT_ORDER, matchesStaple, shoppingAmountText, coreItem, mergeIngredientsIntoList } from '../lib/grocery';
 
+const inp = { padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)', background: 'var(--surface)', outline: 'none', boxSizing: 'border-box' };
+
+// Defined OUTSIDE the parent component so its identity is stable across
+// re-renders — an inline component defined inside render() gets a new
+// reference every render, which makes React remount the DOM (and drop
+// input focus) on every keystroke. This fixes that.
+function QuickAddRow({ newAmount, setNewAmount, newUnit, setNewUnit, newItem, setNewItem, addItem }) {
+  return (
+    <div style={{ display: 'flex', gap: 6 }}>
+      <input value={newAmount} onChange={e => setNewAmount(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} placeholder="amt" style={{ ...inp, width: 56 }} />
+      <input value={newUnit} onChange={e => setNewUnit(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} placeholder="unit" style={{ ...inp, width: 64 }} />
+      <input value={newItem} onChange={e => setNewItem(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} placeholder="Add an item…" style={{ ...inp, flex: 1 }} />
+      <button onClick={addItem} disabled={!newItem.trim()} style={{ padding: '8px 16px', borderRadius: 7, border: 'none', background: newItem.trim() ? 'var(--accent)' : 'var(--tag-bg)', color: newItem.trim() ? 'white' : 'var(--text-muted)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-body)', cursor: newItem.trim() ? 'pointer' : 'default', whiteSpace: 'nowrap' }}>
+        + Add
+      </button>
+    </div>
+  );
+}
+
 export default function GroceriesTab({ savedList, onUpdate, staples }) {
   const [copied, setCopied] = useState(false);
   const [newAmount, setNewAmount] = useState('');
@@ -67,22 +86,9 @@ export default function GroceriesTab({ savedList, onUpdate, staples }) {
     setNewAmount(''); setNewUnit(''); setNewItem('');
   };
 
-  const inp = { padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)', background: 'var(--surface)', outline: 'none', boxSizing: 'border-box' };
-
-  const QuickAddRow = () => (
-    <div style={{ display: 'flex', gap: 6 }}>
-      <input value={newAmount} onChange={e => setNewAmount(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} placeholder="amt" style={{ ...inp, width: 56 }} />
-      <input value={newUnit} onChange={e => setNewUnit(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} placeholder="unit" style={{ ...inp, width: 64 }} />
-      <input value={newItem} onChange={e => setNewItem(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} placeholder="Add an item…" style={{ ...inp, flex: 1 }} />
-      <button onClick={addItem} disabled={!newItem.trim()} style={{ padding: '8px 16px', borderRadius: 7, border: 'none', background: newItem.trim() ? 'var(--accent)' : 'var(--tag-bg)', color: newItem.trim() ? 'white' : 'var(--text-muted)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-body)', cursor: newItem.trim() ? 'pointer' : 'default', whiteSpace: 'nowrap' }}>
-        + Add
-      </button>
-    </div>
-  );
-
   if (!items.length) {
     return (
-      <div style={{ maxWidth: 640, margin: '0 auto', padding: '40px 24px 60px' }}>
+      <div className="gt-view" style={{ maxWidth: 640, margin: '0 auto', padding: '40px 24px 60px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10, marginBottom: 32 }}>
           <div style={{ fontSize: 40, opacity: 0.25 }}>🛒</div>
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--text-muted)', fontWeight: 500 }}>No saved grocery list</h3>
@@ -90,7 +96,7 @@ export default function GroceriesTab({ savedList, onUpdate, staples }) {
             Generate a list from selected recipes or your weekly plan, add ingredients from a recipe page, or add your own item below.
           </p>
         </div>
-        <QuickAddRow />
+        <QuickAddRow newAmount={newAmount} setNewAmount={setNewAmount} newUnit={newUnit} setNewUnit={setNewUnit} newItem={newItem} setNewItem={setNewItem} addItem={addItem} />
       </div>
     );
   }
@@ -104,7 +110,7 @@ export default function GroceriesTab({ savedList, onUpdate, staples }) {
   const savedDate = savedList.savedAt ? new Date(savedList.savedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
 
   return (
-    <div style={{ maxWidth: 640, margin: '0 auto', padding: '24px 24px 60px' }}>
+    <div className="gt-view" style={{ maxWidth: 640, margin: '0 auto', padding: '24px 24px 60px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500 }}>Grocery List</div>
@@ -118,7 +124,7 @@ export default function GroceriesTab({ savedList, onUpdate, staples }) {
 
       {/* Quick add */}
       <div style={{ marginBottom: 22, paddingBottom: 18, borderBottom: '1px solid var(--border)' }}>
-        <QuickAddRow />
+        <QuickAddRow newAmount={newAmount} setNewAmount={setNewAmount} newUnit={newUnit} setNewUnit={setNewUnit} newItem={newItem} setNewItem={setNewItem} addItem={addItem} />
       </div>
 
       {orderedCats.map(cat => (

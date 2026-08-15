@@ -35,7 +35,7 @@ export default function PantryTab({ staples, onUpdate }) {
   );
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 24px 60px' }}>
+    <div className="pt-view" style={{ maxWidth: 720, margin: '0 auto', padding: '24px 24px 60px' }}>
       <div style={{ marginBottom: 6 }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500 }}>Pantry Staples</div>
         <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5, marginTop: 4, maxWidth: 560 }}>

@@ -765,9 +765,13 @@ body {
 @media (max-width: 900px) {
   .rv-columns { grid-template-columns: 1fr; gap: 32px; }
 }
-/* ═══════════════════════════════════════════════════════════════
-   MOBILE STYLES — append this to the END of src/index.css
-   ═══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE STYLES — CONSOLIDATED / AUTHORITATIVE VERSION
+   Replace ALL previously-pasted mobile blocks in src/index.css with
+   this single file's contents (search for "MOBILE STYLES" and
+   "planner slots mobile patch" and delete those old blocks first,
+   so there are no duplicate/conflicting rules).
+   ═══════════════════════════════════════════════════════════════════ */
 
 /* Mobile menu toggle button — hidden on desktop */
 .mobile-menu-btn {
@@ -789,16 +793,29 @@ body {
   box-shadow: var(--shadow-md);
 }
 
-/* Backdrop when mobile sidebar is open */
-.sidebar-backdrop {
-  display: none;
-}
+.sidebar-backdrop { display: none; }
+
+/* Icon-only button labels: hidden by default (desktop shows the text label),
+   shown only on mobile where space is tight. Base rule lives outside the
+   media query so both states are defined globally. */
+.rv-btn-icon-only { display: none; }
 
 @media (max-width: 768px) {
-  /* Show hamburger */
+
+  /* ─── Global mobile type scale & tap targets ─────────────────────── */
+  body { font-size: 15px; }
+
+  /* Prevent iOS Safari's auto-zoom-on-focus, which happens on any input
+     with font-size under 16px — a common source of jarring mobile UX. */
+  input, select, textarea { font-size: 16px !important; }
+
+  button, .btn, .sidebar-btn, .sidebar-item {
+    min-height: 40px;
+  }
+
+  /* ─── Sidebar drawer ──────────────────────────────────────────────── */
   .mobile-menu-btn { display: flex; }
 
-  /* Sidebar becomes a slide-in drawer */
   .sidebar {
     position: fixed;
     top: 0;
@@ -810,9 +827,7 @@ body {
     transition: transform 0.25s ease;
     box-shadow: var(--shadow-lg);
   }
-  .app.sidebar-open .sidebar {
-    transform: translateX(0);
-  }
+  .app.sidebar-open .sidebar { transform: translateX(0); }
   .app.sidebar-open .sidebar-backdrop {
     display: block;
     position: fixed;
@@ -821,27 +836,15 @@ body {
     z-index: 105;
   }
 
-  /* Main content takes full width */
-  .main {
-    width: 100%;
-  }
+  .main { width: 100%; }
 
-  /* Recipe header — wrap and make room for hamburger */
-  .recipe-header {
-    padding: 14px 16px 12px 60px;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  .recipe-header h2 { font-size: 20px; }
-
-  /* Grid header (sticky bar) padding for hamburger */
+  /* ─── Recipe grid header / toolbar ────────────────────────────────── */
   .main > div:first-child {
     padding-left: 60px !important;
     flex-wrap: wrap;
     row-gap: 8px;
   }
 
-  /* Recipe cards: 2 columns on phones */
   .recipe-grid,
   .loading-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -849,88 +852,75 @@ body {
     padding: 14px 16px 40px;
   }
 
-  /* Single column on very narrow */
-  @media (max-width: 460px) {
-    .recipe-grid,
-    .loading-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  /* Recipe view: full screen, single column */
-  .recipe-view {
-    width: 100vw;
-  }
-  .rv-content { padding: 20px 18px 50px; }
-  .rv-title { font-size: 32px; }
-  .rv-columns {
-    grid-template-columns: 1fr;
-    gap: 28px;
-  }
+  /* ─── Recipe view (full page) ─────────────────────────────────────── */
   .rv-topbar {
-    padding: 12px 16px;
+    padding: 10px 14px 10px 58px; /* left space for hamburger */
     flex-wrap: wrap;
-    gap: 8px;
+    row-gap: 8px;
   }
-  .rv-hero-image { height: 220px; }
-
-  /* Modals fill more of the screen */
-  .modal {
-    max-width: 100%;
-    max-height: 92vh;
-  }
-  .modal-overlay { padding: 10px; }
-
-  /* Meal planner: stack the rail on top, grid scrolls */
-  .planner-body {
-    flex-direction: column;
-  }
-  .planner-rail {
-    width: 100% !important;
-    max-height: 180px;
-    border-right: none !important;
-    border-bottom: 1px solid var(--border);
-  }
-  .planner-grid {
-    grid-template-columns: 1fr !important;
-    gap: 10px;
-  }
-  .planner-grid-wrap { padding: 14px 16px; }
-
-  /* Selection bar: fixed full-width at bottom */
-  .selection-bar-mobile {
-    left: 16px !important;
-    right: 16px !important;
-    transform: none !important;
+  .rv-actions {
     flex-wrap: wrap;
-    justify-content: center;
+    row-gap: 6px;
+    margin-left: 0 !important;
+    width: 100%;
+    justify-content: flex-start;
   }
-}
+  /* Collapse verbose button labels to icons only, to fit many actions on
+     one narrow row without horizontal scrolling */
+  .rv-btn-label { display: none; }
+  .rv-btn-icon-only { display: inline-flex; }
+  .rv-collection-select { max-width: 110px; }
 
-/* Tablet: 3 columns */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .recipe-grid,
-  .loading-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .planner-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-/* Recipe view live columns (display mode) stack on mobile */
-@media (max-width: 768px) {
+  .rv-hero-image { height: 200px; }
+  .rv-content { padding: 20px 18px 50px; }
+  .rv-title { font-size: 28px; }
   .rv-columns-live {
     grid-template-columns: 1fr !important;
     gap: 28px !important;
   }
-}
-/* ─── Planner slots mobile patch — append to END of src/index.css ─── */
-@media (max-width: 768px) {
-  /* Slotted day cards stack vertically; slots stay side by side inside each day */
-  .planner-grid > div {
-    min-height: unset !important;
+
+  /* ─── Modals ──────────────────────────────────────────────────────── */
+  .modal { max-width: 100%; max-height: 92vh; }
+  .modal-overlay { padding: 10px; }
+  .modal-header h2 { font-size: 17px; }
+
+  /* Tab bars inside modals/planner (Planner/Groceries/Pantry,
+     Import/Create/JSON, etc.) — bump legibility */
+  .modal-body button[style*="border-radius: 6"] { font-size: 13px !important; }
+
+  /* ─── Meal Planner ────────────────────────────────────────────────── */
+  .planner-root { overflow: hidden; }
+  .planner-body { flex-direction: column; overflow-y: auto; }
+  .planner-rail {
+    width: 100% !important;
+    max-height: 220px;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border);
   }
-  .planner-grid > div > div:not(:first-child) {
-    min-height: 60px !important;
+  .planner-grid-wrap { padding: 14px 14px 60px; overflow: visible; }
+  /* Stack days full-width instead of squeezing 7 columns onto a phone screen */
+  .planner-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+  }
+  .planner-grid > div { min-height: unset !important; }
+  .planner-grid > div > div:not(:first-child) { min-height: 64px !important; }
+
+  /* ─── Cook Mode ───────────────────────────────────────────────────── */
+  .cm-topbar {
+    padding: 10px 14px;
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  /* ─── Groceries & Pantry tabs ─────────────────────────────────────── */
+  .gt-view, .pt-view { padding-left: 16px !important; padding-right: 16px !important; }
+}
+
+/* Tablet: 3 columns for recipe grid, 4 for planner if ever unwrapped */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .recipe-grid,
+  .loading-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }

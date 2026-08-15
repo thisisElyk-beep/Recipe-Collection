@@ -183,7 +183,7 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
 
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
         {/* Top bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 28px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', flexShrink: 0 }}>
+        <div className="rv-topbar" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 28px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', flexShrink: 0 }}>
           {editMode ? (
             <>
               <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500 }}>Editing Recipe</span>
@@ -198,7 +198,7 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
                 onMouseOver={e => e.currentTarget.style.background = 'var(--tag-bg)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
                 Back
               </button>
-              <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div className="rv-actions" style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
                 <div style={{ display: 'flex', gap: 2, background: 'var(--tag-bg)', borderRadius: 8, padding: 3, alignItems: 'center' }}>
                   {[1, 2, 3].map(s => (
                     <button key={s} onClick={() => { setScale(s); setCustomScaling(false); }} style={{ padding: '5px 12px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: (!customScaling && scale === s) ? 600 : 400, fontFamily: 'var(--font-body)', cursor: 'pointer', transition: 'all 0.15s', background: (!customScaling && scale === s) ? 'var(--accent)' : 'transparent', color: (!customScaling && scale === s) ? 'white' : 'var(--text-muted)' }}>
@@ -236,12 +236,12 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
                     </button>
                   )}
                 </div>
-                <button onClick={() => setCookMode(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: 'var(--accent-light)', color: 'var(--accent)', border: '1px solid #E8C4A8', borderRadius: 8, fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-body)', cursor: 'pointer' }}>Cook Mode</button>
+                <button onClick={() => setCookMode(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: 'var(--accent-light)', color: 'var(--accent)', border: '1px solid #E8C4A8', borderRadius: 8, fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-body)', cursor: 'pointer' }}><span className="rv-btn-label">Cook Mode</span><span className="rv-btn-icon-only">🍳</span></button>
                 <div style={{ position: 'relative' }}>
                   <button onClick={() => setShowPlanPicker(v => !v)}
                     title="Add this recipe to the meal plan"
                     style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', background: plannedDay ? '#E8F5EC' : 'var(--surface)', color: plannedDay ? '#2A5C3A' : 'var(--text-muted)', border: `1px solid ${plannedDay ? '#A8D4B4' : 'var(--border)'}`, borderRadius: 8, fontSize: 12, fontWeight: 500, fontFamily: 'var(--font-body)', cursor: 'pointer', transition: 'all 0.2s' }}>
-                    {plannedDay ? '✓ Added' : '📅 Add to Plan'}
+                    {plannedDay ? '✓ Added' : <><span className="rv-btn-label">📅 Add to Plan</span><span className="rv-btn-icon-only">📅</span></>}
                   </button>
                   {showPlanPicker && (
                     <>
@@ -273,10 +273,10 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
                 <button onClick={async () => { await onAddToGroceries(recipe); setAddedToGroceries(true); setTimeout(() => setAddedToGroceries(false), 2000); }}
                   title="Add this recipe's ingredients to your grocery list"
                   style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', background: addedToGroceries ? '#E8F5EC' : 'var(--surface)', color: addedToGroceries ? '#2A5C3A' : 'var(--text-muted)', border: `1px solid ${addedToGroceries ? '#A8D4B4' : 'var(--border)'}`, borderRadius: 8, fontSize: 12, fontWeight: 500, fontFamily: 'var(--font-body)', cursor: 'pointer', transition: 'all 0.2s' }}>
-                  {addedToGroceries ? '✓ Added' : '🛒 + Groceries'}
+                  {addedToGroceries ? '✓ Added' : <><span className="rv-btn-label">🛒 + Groceries</span><span className="rv-btn-icon-only">🛒</span></>}
                 </button>
-                <button onClick={enterEditMode} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', background: 'var(--surface)', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 500, fontFamily: 'var(--font-body)', cursor: 'pointer' }}>✎ Edit</button>
-                <select style={{ fontSize: 12, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 7, background: 'var(--surface)', fontFamily: 'var(--font-body)', cursor: 'pointer', outline: 'none', color: 'var(--text-muted)' }} value={col || 'All Recipes'} onChange={e => onUpdate(id, { collection: e.target.value })}>
+                <button onClick={enterEditMode} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', background: 'var(--surface)', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 500, fontFamily: 'var(--font-body)', cursor: 'pointer' }}><span className="rv-btn-label">✎ Edit</span><span className="rv-btn-icon-only">✎</span></button>
+                <select className="rv-collection-select" style={{ fontSize: 12, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 7, background: 'var(--surface)', fontFamily: 'var(--font-body)', cursor: 'pointer', outline: 'none', color: 'var(--text-muted)' }} value={col || 'All Recipes'} onChange={e => onUpdate(id, { collection: e.target.value })}>
                   {collections.filter(c => c !== 'Favorites').map(c => <option key={c}>{c}</option>)}
                 </select>
                 <button onClick={() => onUpdate(id, { favorited: !favorited })} style={{ width: 34, height: 34, borderRadius: 7, border: '1px solid var(--border)', background: favorited ? 'var(--accent-light)' : 'var(--surface)', cursor: 'pointer', fontSize: 16, color: favorited ? 'var(--accent)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{favorited ? '♥' : '♡'}</button>
@@ -291,7 +291,7 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
           {/* Hero image */}
           {!editingImage && image_url && !imgError ? (
             <div style={{ position: 'relative' }}>
-              <img src={image_url} alt={title} onError={() => setImgError(true)} style={{ width: '100%', height: 300, objectFit: 'cover', display: 'block' }} />
+              <img className="rv-hero-image" src={image_url} alt={title} onError={() => setImgError(true)} style={{ width: '100%', height: 300, objectFit: 'cover', display: 'block' }} />
               <button onClick={handleEditImage} style={{ position: 'absolute', bottom: 12, right: 12, background: 'rgba(0,0,0,0.55)', border: 'none', borderRadius: 7, color: 'white', fontSize: 11, fontFamily: 'var(--font-body)', fontWeight: 500, padding: '6px 12px', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>Change Photo</button>
             </div>
           ) : !editingImage ? (
@@ -314,7 +314,7 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
             </div>
           )}
 
-          <div style={{ padding: '32px 48px 60px', maxWidth: 1100, margin: '0 auto' }}>
+          <div className="rv-content" style={{ padding: '32px 48px 60px', maxWidth: 1100, margin: '0 auto' }}>
 
             {editMode ? (
               /* ═══ EDIT MODE ═══ */
@@ -386,7 +386,7 @@ export default function RecipeView({ recipe, collections, onClose, onUpdate, onD
             ) : (
               /* ═══ DISPLAY MODE ═══ */
               <>
-                <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 46, fontWeight: 400, lineHeight: 1.1, marginBottom: 12, letterSpacing: '-0.01em' }}>{title}</h1>
+                <h1 className="rv-title" style={{ fontFamily: 'var(--font-display)', fontSize: 46, fontWeight: 400, lineHeight: 1.1, marginBottom: 12, letterSpacing: '-0.01em' }}>{title}</h1>
                 {description && <p style={{ fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 22, fontStyle: 'italic' }}>{description}</p>}
 
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, padding: '16px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', marginBottom: 24 }}>

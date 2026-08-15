@@ -1,5 +1,22 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { decodeEntities } from '../lib/scraper';
+import { parseAmount, formatAmount } from '../lib/grocery';
+
+// Scale an ingredient amount string by a multiplier, handling ranges
+// (mirrors the logic in RecipeView so Cook Mode matches the recipe page)
+function scaleAmt(amount, scale) {
+  if (scale === 1 || !amount) return amount;
+  const rangeMatch = amount.toString().match(/^(.+?)\s*(-|to)\s*(.+)$/i);
+  if (rangeMatch) {
+    const n1 = parseAmount(rangeMatch[1]);
+    const n2 = parseAmount(rangeMatch[3]);
+    const sep = /to/i.test(rangeMatch[2]) ? ' to ' : '-';
+    if (n1 !== null && n2 !== null) return `${formatAmount(n1 * scale)}${sep}${formatAmount(n2 * scale)}`;
+  }
+  const n = parseAmount(amount);
+  if (n === null) return amount;
+  return formatAmount(n * scale);
+}
 
 // ── Wake Lock ────────────────────────────────────────────────────
 async function requestWakeLock() {
@@ -350,7 +367,7 @@ export default function CookingMode({ recipe, scale, onClose }) {
       </div>
 
       {/* Top bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 24px', borderBottom: '1px solid #E8E2D8', background: '#fff', flexShrink: 0, gap: 12 }}>
+      <div className="cm-topbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 24px', borderBottom: '1px solid #E8E2D8', background: '#fff', flexShrink: 0, gap: 12 }}>
         <div style={{ fontSize: 15, fontWeight: 600, color: '#2A2520', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{recipe.title}</div>
         <button onClick={toggleVoice} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 14px', borderRadius: 8, border: `1px solid ${voiceBorder}`, background: voiceBg, color: voiceColor, fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0 }}>
           <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -396,7 +413,7 @@ export default function CookingMode({ recipe, scale, onClose }) {
               {relevant.map((ing, i) => (
                 <div key={i} style={{ padding: '14px 16px', marginBottom: 8, background: '#F6F2EB', borderRadius: 9, border: '1px solid #EDE8E0' }}>
                   <div style={{ fontSize: 20, fontWeight: 700, color: '#C4622D', letterSpacing: '-0.02em', lineHeight: 1, marginBottom: 4 }}>
-                    {[ing.amount, ing.unit].filter(Boolean).join(' ') || '-'}
+                    {[scaleAmt(ing.amount, scale), ing.unit].filter(Boolean).join(' ') || '-'}
                   </div>
                   <div style={{ fontSize: 15, fontWeight: 500, color: '#2A2520', lineHeight: 1.3 }}>{decodeEntities(ing.item)}</div>
                   {ing.note && <div style={{ fontSize: 12, color: '#8A7F75', marginTop: 3, fontStyle: 'italic' }}>{ing.note}</div>}
