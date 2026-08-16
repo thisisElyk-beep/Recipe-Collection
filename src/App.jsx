@@ -8,7 +8,7 @@ import AddRecipeModal from './components/AddRecipeModal';
 import SettingsModal from './components/SettingsModal';
 import SelectionBar from './components/SelectionBar';
 import ShoppingListModal from './components/ShoppingListModal';
-import MealPlanner from './components/MealPlanner';
+import MealPlanner, { weekStartKey } from './components/MealPlanner';
 import { mergeIngredientsIntoList } from './lib/grocery';
 
 export default function App() {
@@ -29,7 +29,7 @@ export default function App() {
   const [showPlanner, setShowPlanner] = useState(false);
   const [plannerTab, setPlannerTab] = useState('planner');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [mealPlan, setMealPlan] = useState({});
+  const [mealPlanWeeks, setMealPlanWeeks] = useState({});
   const [groceries, setGroceries] = useState(null);
   const [staples, setStaples] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -57,15 +57,29 @@ export default function App() {
     const db = getFirebaseDb();
     if (!db) return;
     return onSnapshot(doc(db,'mealplan','current'), snap => {
-      setMealPlan(snap.exists() ? (snap.data().plan || {}) : {});
+      if (!snap.exists()) { setMealPlanWeeks({}); return; }
+      const data = snap.data();
+      if (data.weeks) { setMealPlanWeeks(data.weeks); return; }
+      // Migrate old single-week format: { plan: {...} } -> treat as "this week"
+      if (data.plan) { setMealPlanWeeks({ [weekStartKey(0)]: { days: data.plan, notes: {} } }); return; }
+      setMealPlanWeeks({});
     });
   }, []);
 
-  const updateMealPlan = async (newPlan) => {
-    setMealPlan(newPlan); // optimistic
+  const updateMealPlanWeeks = async (newWeeks) => {
+    setMealPlanWeeks(newWeeks); // optimistic
     const db = getFirebaseDb();
     if (!db) return;
-    await setDoc(doc(db,'mealplan','current'), { plan: newPlan });
+    await setDoc(doc(db,'mealplan','current'), { weeks: newWeeks });
+  };
+
+  // The "current week" slice — used for the quick Add-to-Plan popover on a
+  // recipe page, which always targets the real current week.
+  const thisWeekStart = weekStartKey(0);
+  const currentWeekDays = mealPlanWeeks[thisWeekStart]?.days || {};
+  const updateCurrentWeekPlan = async (newDays) => {
+    const existing = mealPlanWeeks[thisWeekStart] || { days: {}, notes: {} };
+    await updateMealPlanWeeks({ ...mealPlanWeeks, [thisWeekStart]: { ...existing, days: newDays } });
   };
 
   // Saved grocery list — single doc at groceries/current
@@ -206,7 +220,7 @@ export default function App() {
 
       <main className="main">
         {viewingRecipe ? (
-          <RecipeView recipe={viewingRecipe} collections={collections} onClose={()=>setViewingRecipe(null)} onUpdate={updateRecipe} onDelete={deleteRecipe} onAddToGroceries={addRecipeToGroceries} onAddIngredientToGroceries={addIngredientToGroceries} mealPlan={mealPlan} onUpdatePlan={updateMealPlan} />
+          <RecipeView recipe={viewingRecipe} collections={collections} onClose={()=>setViewingRecipe(null)} onUpdate={updateRecipe} onDelete={deleteRecipe} onAddToGroceries={addRecipeToGroceries} onAddIngredientToGroceries={addIngredientToGroceries} mealPlan={currentWeekDays} onUpdatePlan={updateCurrentWeekPlan} />
         ) : (
           <RecipeGrid
             recipes={filteredRecipes} loading={loading} searchQuery={searchQuery}
@@ -232,8 +246,8 @@ export default function App() {
           key={plannerTab}
           initialTab={plannerTab}
           recipes={recipes}
-          plan={mealPlan}
-          onUpdatePlan={updateMealPlan}
+          weeks={mealPlanWeeks}
+          onUpdateWeeks={updateMealPlanWeeks}
           onClose={()=>setShowPlanner(false)}
           onOpenRecipe={r=>{setShowPlanner(false);setViewingRecipe(r);}}
           groceries={groceries}
