@@ -96,6 +96,21 @@ function stepMentionsIngredient(text, ing) {
 }
 
 // Find the significant words of an ingredient that we look for in step text
+// Words that identify an ingredient as a spice/dry seasoning, so a step that
+// says "add the dry spices" (a collective reference, not any single name)
+// can still pull in cumin, paprika, oregano, etc. even though none of those
+// words appear literally in the step text.
+const SPICE_WORDS = ['cumin','paprika','oregano','cayenne','cinnamon','nutmeg','coriander','turmeric','bay leaf','basil','thyme','rosemary','sage','dill','parsley','chili powder','garlic powder','onion powder','red pepper flakes','italian seasoning','curry powder','smoked paprika','salt','black pepper','white pepper','ground pepper','chili flakes','allspice','cardamom','clove','ginger','mustard powder','five spice','old bay','seasoning'];
+function isSpiceIngredient(ing) {
+  const item = (ing.item || '').toLowerCase();
+  return SPICE_WORDS.some(w => item.includes(w));
+}
+
+// Collective phrases that reference "the spices" as a group rather than
+// naming any one of them — "dry spices", "the spices", "spice mix",
+// "seasonings", "seasoning mix".
+const SPICE_COLLECTIVE_RE = /\b(dry spices|the spices|spice mix|spices|seasonings?|seasoning mix)\b/i;
+
 function ingredientKeywords(ing) {
   const item = (ing.item || '').toLowerCase().replace(/[^a-z\s]/g, '').trim();
   const words = item.split(/\s+/).filter(w => w.length > 2 && !MODIFIERS.has(w));
@@ -131,17 +146,21 @@ function computeStepIngredients(steps, ingredients) {
   return steps.map(step => {
     const text = (step.instruction || '').toLowerCase();
     const show = [];
+    const collectiveSpices = SPICE_COLLECTIVE_RE.test(text);
     ingredients.forEach((ing, idx) => {
-      if (!stepMentionsIngredient(text, ing)) return;
+      const mentioned = stepMentionsIngredient(text, ing);
+      // A step mentions this ingredient either by name, OR the step says
+      // "dry spices"/"seasonings" collectively and this ingredient IS a spice.
+      const collectiveHit = !mentioned && collectiveSpices && isSpiceIngredient(ing);
+      if (!mentioned && !collectiveHit) return;
       if (!introduced.has(idx)) {
-        // First appearance — introduce it here
         introduced.add(idx);
         show.push(ing);
-      } else if (stepAddsIngredient(text, ing)) {
+      } else if (mentioned && stepAddsIngredient(text, ing)) {
         // Already introduced, but this step adds more — show again
         show.push(ing);
       }
-      // else: merely referenced — skip
+      // else: merely referenced (and already introduced) — skip
     });
     return show;
   });
